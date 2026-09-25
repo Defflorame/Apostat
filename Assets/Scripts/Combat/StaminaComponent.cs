@@ -4,10 +4,11 @@ using UnityEngine;
 namespace Game.Combat
 {
     /// <summary>
-    /// Выносливость игрока. Используется атаками, блоком, парированием,
-    /// отскоком. Пока этот компонент не существовал (Phase 1), действия
-    /// её не расходовали — теперь каждое из них должно проверять
-    /// TryConsume() перед выполнением.
+    /// Выносливость игрока. С Phase 3 maxStamina и regenPerSecond приходят
+    /// из CharacterStats (характеристика Stamina определяет и то, и другое —
+    /// см. п. 3.7 Пояснительной записки) через SetMaxStamina/SetRegenPerSecond.
+    /// Сериализованные значения остались лишь значением по умолчанию —
+    /// на случай объектов без CharacterStats.
     /// </summary>
     public class StaminaComponent : MonoBehaviour
     {
@@ -69,5 +70,19 @@ namespace Game.Combat
         public void StartRegeneration() => _regenEnabled = true;
 
         public void StopRegeneration() => _regenEnabled = false;
+
+        /// <summary>Вызывается CharacterStats при (пере)расчёте характеристик.</summary>
+        public void SetMaxStamina(float newMax, bool refillToFull)
+        {
+            maxStamina = Mathf.Max(0f, newMax);
+            CurrentStamina = refillToFull ? maxStamina : Mathf.Min(CurrentStamina, maxStamina);
+            OnStaminaChanged?.Invoke(CurrentStamina, maxStamina);
+        }
+
+        /// <summary>Вызывается CharacterStats при (пере)расчёте характеристик.</summary>
+        public void SetRegenPerSecond(float value)
+        {
+            regenPerSecond = Mathf.Max(0f, value);
+        }
     }
 }

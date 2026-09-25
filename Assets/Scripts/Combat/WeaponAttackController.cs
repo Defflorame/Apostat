@@ -27,6 +27,7 @@ namespace Game.Combat
 
         private void Awake()
         {
+            
             weaponHitbox.SetOwner(gameObject);
             weaponHitbox.ApplyRange(equippedWeapon.range);
 

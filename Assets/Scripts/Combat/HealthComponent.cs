@@ -4,9 +4,11 @@ using UnityEngine;
 namespace Game.Combat
 {
     /// <summary>
-    /// На первом этапе реализованы только получение урона и смерть.
-    /// Heal/SetHealth добавятся, когда появится реальная необходимость
-    /// (например, зелья или регенерация).
+    /// На первом этапе были реализованы только получение урона и смерть.
+    /// В Phase 3 добавлен SetMaxHealth: теперь источником maxHealth для
+    /// игрока является характеристика Health в CharacterStats, а не только
+    /// константа в инспекторе. Сериализованное поле осталось значением
+    /// по умолчанию — на случай объектов без CharacterStats.
     /// </summary>
     public class HealthComponent : MonoBehaviour
     {
@@ -33,7 +35,7 @@ namespace Game.Combat
             OnDamageTaken?.Invoke(amount);
             OnHealthChanged?.Invoke(CurrentHealth, maxHealth);
             Debug.Log($"HealthComponent: {gameObject.name} получил {amount} урона, текущее хп {CurrentHealth}");
-            
+
             if (CurrentHealth <= 0)
             {
                 Kill();
@@ -50,5 +52,18 @@ namespace Game.Combat
         }
 
         public bool IsDead() => _isDead;
+
+        /// <summary>
+        /// Вызывается CharacterStats при (пере)расчёте характеристик.
+        /// refillToFull=true — здоровье выставляется на новый максимум
+        /// (старт игры); false — текущее здоровье лишь ограничивается новым
+        /// максимумом сверху (например, при добавлении/снятии модификатора).
+        /// </summary>
+        public void SetMaxHealth(int newMax, bool refillToFull)
+        {
+            maxHealth = Mathf.Max(1, newMax);
+            CurrentHealth = refillToFull ? maxHealth : Mathf.Min(CurrentHealth, maxHealth);
+            OnHealthChanged?.Invoke(CurrentHealth, maxHealth);
+        }
     }
 }

@@ -5,7 +5,7 @@ namespace Game.Combat
     /// <summary>
     /// Incoming Damage + Shield Efficiency + Attacker Power + Player Modifiers
     /// → Blocked Damage (раздел 31 документа).
-    /// Player Modifiers (характеристики игрока) подключатся в Phase 3 —
+    /// Player Modifiers (характеристики игрока) подключатся в Phase 4 —
     /// сейчас формула использует только базовую эффективность щита и силу атаки.
     /// </summary>
     public class BlockResolver : MonoBehaviour
