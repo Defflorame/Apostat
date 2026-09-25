@@ -1,0 +1,81 @@
+using System;
+using UnityEngine;
+using UnityEngine.InputSystem;
+
+namespace Game.Player
+{
+    /// <summary>
+    /// Единственный класс, знающий о конкретных Input Actions.
+    /// Переводит физический ввод в игровые команды (события).
+    /// Не решает, что происходит после команды.
+    ///
+
+    public class PlayerInputReader : MonoBehaviour
+    {
+        [SerializeField] private InputManager inputManager;
+
+        public event Action<Vector2> OnMove;
+        public event Action<Vector2> OnLook;
+        public event Action OnAttackPressed;
+        public event Action OnAttackReleased;
+        public event Action OnBlockPressed;
+        public event Action OnBlockReleased;
+        public event Action OnParryPressed;
+        public event Action OnJumpPressed;
+
+        private InputAction _moveAction;
+        private InputAction _lookAction;
+        private InputAction _attackAction;
+        private InputAction _blockAction;
+        private InputAction _parryAction;
+        private InputAction _jumpAction;
+
+        private void Awake()
+        {
+            InputActionMap playerMap = inputManager.InputActions.FindActionMap("Player", throwIfNotFound: true);
+
+            _moveAction = playerMap.FindAction("Move", throwIfNotFound: true);
+            _lookAction = playerMap.FindAction("Look", throwIfNotFound: true);
+            _attackAction = playerMap.FindAction("Attack", throwIfNotFound: true);
+            _blockAction = playerMap.FindAction("Block", throwIfNotFound: true);
+            _parryAction = playerMap.FindAction("Parry", throwIfNotFound: true);
+            _jumpAction = playerMap.FindAction("Jump", throwIfNotFound: true);
+
+            Cursor.visible = false;
+            Cursor.lockState = CursorLockMode.Locked;
+        }
+
+        private void OnEnable()
+        {
+            _attackAction.started += HandleAttackPressed;
+            _attackAction.canceled += HandleAttackReleased;
+            _blockAction.started += HandleBlockPressed;
+            _blockAction.canceled += HandleBlockReleased;
+            _parryAction.started += HandleParryPressed;
+            _jumpAction.started += HandleJumpPressed;
+        }
+
+        private void OnDisable()
+        {
+            _attackAction.started -= HandleAttackPressed;
+            _attackAction.canceled -= HandleAttackReleased;
+            _blockAction.started -= HandleBlockPressed;
+            _blockAction.canceled -= HandleBlockReleased;
+            _parryAction.started -= HandleParryPressed;
+            _jumpAction.started -= HandleJumpPressed;
+        }
+
+        private void Update()
+        {
+            OnMove?.Invoke(_moveAction.ReadValue<Vector2>());
+            OnLook?.Invoke(_lookAction.ReadValue<Vector2>());
+        }
+
+        private void HandleAttackPressed(InputAction.CallbackContext ctx) => OnAttackPressed?.Invoke();
+        private void HandleAttackReleased(InputAction.CallbackContext ctx) => OnAttackReleased?.Invoke();
+        private void HandleBlockPressed(InputAction.CallbackContext ctx) => OnBlockPressed?.Invoke();
+        private void HandleBlockReleased(InputAction.CallbackContext ctx) => OnBlockReleased?.Invoke();
+        private void HandleParryPressed(InputAction.CallbackContext ctx) => OnParryPressed?.Invoke();
+        private void HandleJumpPressed(InputAction.CallbackContext ctx) => OnJumpPressed?.Invoke();
+    }
+}
