@@ -15,7 +15,7 @@ MonoBehaviour:
   strength: 10
   baseHealth: 50
   healthPerStrengthPoint: 5
-  physicalDamageBonusPerStrengthPoint: 5
+  physicalDamageBonusPerStrengthPoint: 1
   stamina: 100
   staminaRegenPerSecond: 15
   mana: 50

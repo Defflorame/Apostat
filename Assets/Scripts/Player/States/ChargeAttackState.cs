@@ -8,24 +8,25 @@ namespace Game.Player
     /// <summary>
     /// Активно, пока игрок удерживает ЛКМ дольше порога тапа
     /// (см. PlayerCombatController.chargeHoldThreshold). При отпускании
-    /// выполняет усиленную атаку; урон масштабируется от длительности
-    /// удержания (0..maxChargeTime).
+    /// выполняет усиленную атаку. MaxChargeTime и StaminaCost читаются
+    /// из текущего HeavyAttackData динамически — с Phase 4 оружие можно
+    /// сменить в рантайме.
     /// </summary>
     public class ChargeAttackState : IPlayerActionState
     {
         private readonly WeaponAttackController _weaponAttackController;
         private readonly StaminaComponent _stamina;
-        private readonly float _maxChargeTime;
+        private readonly Game.Player.Equipment.PlayerEquipment _playerEquipment;
         private readonly Action _onFinished;
 
         private float _chargeStartTime;
         private bool _released;
 
-        public ChargeAttackState(WeaponAttackController weaponAttackController, StaminaComponent stamina, float maxChargeTime, Action onFinished)
+        public ChargeAttackState(WeaponAttackController weaponAttackController, StaminaComponent stamina, Game.Player.Equipment.PlayerEquipment playerEquipment, Action onFinished)
         {
             _weaponAttackController = weaponAttackController;
             _stamina = stamina;
-            _maxChargeTime = maxChargeTime;
+            _playerEquipment = playerEquipment;
             _onFinished = onFinished;
         }
 
@@ -42,18 +43,17 @@ namespace Game.Player
 
         public bool CanInterrupt() => false;
 
-        /// <summary>Вызывается PlayerCombatController при отпускании ЛКМ.</summary>
         public void NotifyReleased()
         {
             if (_released) return;
             _released = true;
 
-            float chargeDuration = Mathf.Clamp(Time.time - _chargeStartTime, 0f, _maxChargeTime);
-            float chargeRatio = _maxChargeTime > 0f ? chargeDuration / _maxChargeTime : 1f;
-
             AttackData heavyData = _weaponAttackController.HeavyAttackData;
-            float staminaCost = heavyData != null ? heavyData.staminaCost : 0f;
+            float maxChargeTime = heavyData != null ? heavyData.maxChargeDuration : 1f;
 
+            float chargeDuration = Mathf.Clamp(Time.time - _chargeStartTime, 0f, maxChargeTime);
+            float chargeRatio = maxChargeTime > 0f ? chargeDuration / maxChargeTime : 1f;
+            float staminaCost = (heavyData != null ? heavyData.staminaCost : 0f) * _playerEquipment.GetStaminaCostMultiplier();
             Debug.Log($"ChargeAttackState: отпустили после {chargeDuration:F2}s (ratio {chargeRatio:F2})");
 
             if (_stamina != null && !_stamina.TryConsume(staminaCost))

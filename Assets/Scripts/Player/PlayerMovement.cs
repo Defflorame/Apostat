@@ -1,20 +1,21 @@
 using UnityEngine;
 using Game.Player.Stats;
+using Game.Player.Equipment;
 
 namespace Game.Player
 {
     /// <summary>
     /// Горизонтальное перемещение игрока. Не смешивается с боевой системой.
-    /// Ускоренный бег отсутствует. С Phase 3 базовая скорость берётся из
-    /// CharacterStats (характеристика Speed) вместо константы в инспекторе,
-    /// а EncumbranceService учитывает нагрузку экипировки — пока Equipment
-    /// не реализован (Phase 4), currentWeight всегда 0, поэтому множитель
-    /// нагрузки сейчас всегда 1 (нет видимого эффекта, но система готова).
+    /// Ускоренный бег отсутствует. Базовая скорость берётся из CharacterStats
+    /// (характеристика Speed). С Phase 4 currentWeight приходит из
+    /// PlayerEquipment.GetTotalWeight() — раньше здесь была заглушка на 0,
+    /// т.к. Equipment ещё не существовал.
     /// </summary>
     [RequireComponent(typeof(CharacterController))]
     public class PlayerMovement : MonoBehaviour
     {
         [SerializeField] private CharacterStats characterStats;
+        [SerializeField] private PlayerEquipment playerEquipment;
         [SerializeField] private float gravity = -20f;
         [SerializeField] private float jumpHeight = 1.2f;
 
@@ -41,6 +42,11 @@ namespace Game.Player
             {
                 characterStats.OnStatsChanged += HandleStatsChanged;
             }
+
+            if (playerEquipment != null)
+            {
+                playerEquipment.OnEquipmentChanged += HandleEquipmentChanged;
+            }
         }
 
         private void OnDisable()
@@ -49,13 +55,15 @@ namespace Game.Player
             {
                 characterStats.OnStatsChanged -= HandleStatsChanged;
             }
+
+            if (playerEquipment != null)
+            {
+                playerEquipment.OnEquipmentChanged -= HandleEquipmentChanged;
+            }
         }
 
         private void Start()
         {
-            // Читаем CharacterStats.Stats в Start(), а не в Awake(): порядок
-            // выполнения Awake() между разными компонентами не гарантирован,
-            // а Start() гарантированно выполняется после всех Awake().
             RecalculateSpeed();
         }
 
@@ -121,7 +129,6 @@ namespace Game.Player
             }
         }
 
-        /// <summary>Начинает управляемый рывок (используется DodgeState), игнорируя обычный ввод.</summary>
         public void BeginDash(Vector3 worldDirection, float speed)
         {
             _isDashing = true;
@@ -146,6 +153,11 @@ namespace Game.Player
             RecalculateSpeed();
         }
 
+        private void HandleEquipmentChanged()
+        {
+            RecalculateSpeed();
+        }
+
         private void RecalculateSpeed()
         {
             if (characterStats == null)
@@ -155,8 +167,7 @@ namespace Game.Player
                 return;
             }
 
-            // TODO (Phase 4): currentWeight должен приходить из PlayerEquipment.GetTotalWeight().
-            float currentWeight = 0f;
+            float currentWeight = playerEquipment != null ? playerEquipment.GetTotalWeight() : 0f;
             float loadRatio = EncumbranceService.GetLoadRatio(currentWeight, characterStats.Stats.CarryWeightLimit);
             _effectiveSpeed = characterStats.Stats.MovementSpeed * EncumbranceService.GetMovementMultiplier(loadRatio);
         }

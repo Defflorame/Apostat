@@ -1,19 +1,23 @@
 using UnityEngine;
-
+using Game.Player.Stats;
 namespace Game.Combat
 {
-    /// <summary>
+       /// <summary>
     /// Общий компонент получения урона. Используется и игроком, и врагами.
-    /// BlockResolver/ParryResolver необязательны (может быть null) — их
-    /// назначают только тем объектам, которые умеют блокировать/парировать.
+    /// BlockResolver/ParryResolver/CharacterStats необязательны (может быть
+    /// null) — назначаются только тем объектам, у которых они есть
+    /// (у врагов до Phase 8/EnemyStats характеристик может не быть).
     /// </summary>
     [RequireComponent(typeof(HealthComponent))]
     public class DamageReceiver : MonoBehaviour
     {
         [SerializeField] private BlockResolver blockResolver;
         [SerializeField] private ParryResolver parryResolver;
+        [SerializeField] private CharacterStats characterStats;
 
         private HealthComponent _health;
+
+        public CharacterStats CharacterStats => characterStats;
 
         private void Awake()
         {

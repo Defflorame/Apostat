@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: dd999c5fc5ed39247ad4d7670f1009bd, type: 3}
+  m_Name: Dagger
+  m_EditorClassIdentifier: Assembly-CSharp::Game.Items.WeaponData
+  itemId: Dagger
+  itemName: Dagger
+  description: Lol
+  weight: 5
+  maxStackSize: 1
+  lightAttack: {fileID: 11400000, guid: d701ccae3b4ea454a98e5a2aa5cbf009, type: 2}
+  heavyAttack: {fileID: 11400000, guid: a1231d3399ff1574da0aa5096645fbf5, type: 2}
+  range: 1
+  dodgeDistance: 5
+  isTwoHanded: 0

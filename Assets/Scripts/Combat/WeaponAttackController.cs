@@ -2,35 +2,46 @@ using System;
 using System.Collections;
 using UnityEngine;
 using Game.Items;
+using Game.Player.Equipment;
 
 namespace Game.Combat
 {
     /// <summary>
     /// Запускает атаку, читает AttackData, управляет фазами
-    /// (Startup/Active/Recovery) и активацией hitbox.
-    /// Корутина используется только как удобный временной процесс —
-    /// логика фаз остаётся простой и предсказуемой (не подменяет state machine).
+    /// (Startup/Active/Recovery) и активацией hitbox. С Phase 4 текущее
+    /// оружие читается из CombatLoadout — оружие теперь можно сменить
+    /// в рантайме через PlayerEquipment.
     /// </summary>
     public class WeaponAttackController : MonoBehaviour
     {
-        [SerializeField] private WeaponData equippedWeapon;
+        [SerializeField] private CombatLoadout combatLoadout;
         [SerializeField] private WeaponHitbox weaponHitbox;
 
         public event Action OnAttackFinished;
 
-        public AttackData LightAttackData => equippedWeapon != null ? equippedWeapon.lightAttack : null;
-        public AttackData HeavyAttackData => equippedWeapon != null ? equippedWeapon.heavyAttack : null;
-        public WeaponData EquippedWeapon => equippedWeapon != null ? equippedWeapon : null;
+        public AttackData LightAttackData => combatLoadout.CurrentWeapon != null ? combatLoadout.CurrentWeapon.lightAttack : null;
+        public AttackData HeavyAttackData => combatLoadout.CurrentWeapon != null ? combatLoadout.CurrentWeapon.heavyAttack : null;
+        public WeaponData EquippedWeapon => combatLoadout.CurrentWeapon;
 
         private Coroutine _attackRoutine;
         private AttackRuntime _currentAttackRuntime;
 
+
         private void Awake()
         {
-            
             weaponHitbox.SetOwner(gameObject);
-            weaponHitbox.ApplyRange(equippedWeapon.range);
+        }
 
+
+
+        private void OnEnable()
+        {
+            combatLoadout.OnLoadoutChanged += HandleLoadoutChanged;
+        }
+
+        private void OnDisable()
+        {
+            combatLoadout.OnLoadoutChanged -= HandleLoadoutChanged;
         }
 
         public void StartLightAttack()
@@ -44,7 +55,7 @@ namespace Game.Combat
             AttackData heavy = HeavyAttackData;
             if (heavy == null)
             {
-                Debug.LogWarning("WeaponAttackController: у equippedWeapon не назначен heavyAttack.", this);
+                Debug.LogWarning("WeaponAttackController: у текущего оружия не назначен heavyAttack.", this);
                 OnAttackFinished?.Invoke();
                 return;
             }
@@ -54,6 +65,12 @@ namespace Game.Combat
             StartAttack(heavy, multiplier);
         }
 
+        /// <summary>
+        /// Прерывает текущую атаку (например, при смене экипировки во время
+        /// Startup/Active/Recovery). Вызывает OnAttackFinished — иначе
+        /// AttackState/ChargeAttackState (CanInterrupt() == false) никогда
+        /// не получат сигнал вернуться в FreeState и игрок зависнет в бою.
+        /// </summary>
         public void CancelAttack()
         {
             if (_attackRoutine == null) return;
@@ -61,6 +78,7 @@ namespace Game.Combat
             StopCoroutine(_attackRoutine);
             _attackRoutine = null;
             DisableHitbox();
+            OnAttackFinished?.Invoke();
         }
 
         public void EnableHitbox()
@@ -81,6 +99,9 @@ namespace Game.Combat
                 OnAttackFinished?.Invoke();
                 return;
             }
+
+            float weaponRange = combatLoadout.CurrentWeapon != null ? combatLoadout.CurrentWeapon.range : 1f;
+            weaponHitbox.ApplyShape(attackData.hitboxSize, weaponRange);
 
             _currentAttackRuntime = new AttackRuntime(attackData, Time.time, damageMultiplier);
             _attackRoutine = StartCoroutine(RunAttackSequence(attackData));
@@ -103,5 +124,11 @@ namespace Game.Combat
             _attackRoutine = null;
             OnAttackFinished?.Invoke();
         }
+
+        private void HandleLoadoutChanged()
+        {
+            CancelAttack();
+        }
+
     }
 }
