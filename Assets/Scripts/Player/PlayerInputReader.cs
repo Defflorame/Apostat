@@ -3,13 +3,11 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 
 namespace Game.Player
-{
-    /// <summary>
-    /// Единственный класс, знающий о конкретных Input Actions.
-    /// Переводит физический ввод в игровые команды (события).
-    /// Не решает, что происходит после команды.
-    ///
-
+{ /// <summary>
+  /// Единственный класс, знающий о конкретных Input Actions.
+  /// Переводит физический ввод в игровые команды (события).
+  /// Не решает, что происходит после команды.
+  ///
     public class PlayerInputReader : MonoBehaviour
     {
         [SerializeField] private InputManager inputManager;
@@ -22,6 +20,7 @@ namespace Game.Player
         public event Action OnBlockReleased;
         public event Action OnParryPressed;
         public event Action OnJumpPressed;
+        public event Action OnSwitchWeaponPressed;
 
         private InputAction _moveAction;
         private InputAction _lookAction;
@@ -29,6 +28,7 @@ namespace Game.Player
         private InputAction _blockAction;
         private InputAction _parryAction;
         private InputAction _jumpAction;
+        private InputAction _switchWeaponAction;
 
         private void Awake()
         {
@@ -40,9 +40,10 @@ namespace Game.Player
             _blockAction = playerMap.FindAction("Block", throwIfNotFound: true);
             _parryAction = playerMap.FindAction("Parry", throwIfNotFound: true);
             _jumpAction = playerMap.FindAction("Jump", throwIfNotFound: true);
+            _switchWeaponAction = playerMap.FindAction("SwitchWeapon", throwIfNotFound: true);
 
-            Cursor.visible = false;
-            Cursor.lockState = CursorLockMode.Locked;
+            // Cursor.visible = false;
+            // Cursor.lockState = CursorLockMode.Locked;
         }
 
         private void OnEnable()
@@ -53,6 +54,7 @@ namespace Game.Player
             _blockAction.canceled += HandleBlockReleased;
             _parryAction.started += HandleParryPressed;
             _jumpAction.started += HandleJumpPressed;
+            _switchWeaponAction.started += HandleSwitchWeaponPressed;
         }
 
         private void OnDisable()
@@ -63,6 +65,7 @@ namespace Game.Player
             _blockAction.canceled -= HandleBlockReleased;
             _parryAction.started -= HandleParryPressed;
             _jumpAction.started -= HandleJumpPressed;
+            _switchWeaponAction.started -= HandleSwitchWeaponPressed;
         }
 
         private void Update()
@@ -77,5 +80,6 @@ namespace Game.Player
         private void HandleBlockReleased(InputAction.CallbackContext ctx) => OnBlockReleased?.Invoke();
         private void HandleParryPressed(InputAction.CallbackContext ctx) => OnParryPressed?.Invoke();
         private void HandleJumpPressed(InputAction.CallbackContext ctx) => OnJumpPressed?.Invoke();
+        private void HandleSwitchWeaponPressed(InputAction.CallbackContext ctx) => OnSwitchWeaponPressed?.Invoke();
     }
 }

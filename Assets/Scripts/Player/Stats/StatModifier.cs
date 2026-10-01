@@ -8,8 +8,7 @@ namespace Game.Player.Stats
     /// Source нужен, чтобы впоследствии снять именно свои модификаторы,
     /// не затронув чужие (см. CharacterStats.RemoveModifiersFromSource) —
     /// например, при снятии конкретного кольца или предмета экипировки.
-    /// Ничего в проекте пока не создаёт такие модификаторы (Equipment —
-    /// Phase 4, StatusEffects — Phase 6), но именно ради них существует
+    /// Equipment создаёт такие модификаторы (StatusEffects — Phase 6), но именно ради них существует
     /// сам класс StatModifier, поэтому Source закладывается сразу.
     /// </summary>
     public class StatModifier

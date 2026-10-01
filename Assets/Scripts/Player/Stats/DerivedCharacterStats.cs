@@ -8,7 +8,7 @@ namespace Game.Player.Stats
     /// PhysicalDamageBonusPercent и DefenseValue — боевые модификаторы без
     /// своего компонента-пула: их не проталкивают ни в один Component,
     /// их читает напрямую Combat-система (DamageResolver) в момент расчёта
-    /// урона — это появится вместе с экипировкой в Phase 4.
+    /// урона.
     /// </summary>
     public class DerivedCharacterStats
     {

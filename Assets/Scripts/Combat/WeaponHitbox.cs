@@ -12,6 +12,7 @@ namespace Game.Combat
     {
         private Collider _collider;
         private GameObject _owner;
+        private Game.Player.Stats.CharacterStats _ownerStats;
         private AttackRuntime _currentAttack;
         private bool _isActive;
 
@@ -22,23 +23,29 @@ namespace Game.Combat
             _collider.enabled = false;
         }
 
-        /// <summary>Владелец оружия (источник урона) — игрок или враг.</summary>
+        /// <summary>Владелец оружия (источник урона) — игрок или враг. CharacterStats кэшируется здесь один раз, а не ищется при каждом попадании (см. раздел 76, п.12).</summary>
         public void SetOwner(GameObject owner)
         {
             _owner = owner;
+            _ownerStats = owner.GetComponentInParent<Game.Player.Stats.CharacterStats>();
         }
 
-        /// <summary>
-        /// Растягивает коллайдер вдоль локальной оси Z (forward оружия) до длины range.
-        /// Предполагается, что pivot хитбокса стоит у рукояти/начала клинка.
+                /// <summary>
+        /// Растягивает коллайдер по трём осям под конкретную атаку. Ось,
+        /// равная 0 в attackSize, сохраняет текущее значение коллайдера
+        /// (X/Y) или берёт weaponRange как фолбэк (Z) — это позволяет
+        /// старым AttackData без заполненного hitboxSize работать как
+        /// раньше (только length от WeaponData.range).
         /// </summary>
-        public void ApplyRange(float range)
+        public void ApplyShape(Vector3 attackSize, float weaponRange)
         {
             switch (_collider)
             {
                 case BoxCollider box:
                     Vector3 size = box.size;
-                    size.z = Mathf.Max(0.01f, range);
+                    if (attackSize.x > 0f) size.x = attackSize.x;
+                    if (attackSize.y > 0f) size.y = attackSize.y;
+                    size.z = attackSize.z > 0f ? attackSize.z : Mathf.Max(0.01f, weaponRange);
                     box.size = size;
 
                     Vector3 center = box.center;
@@ -47,7 +54,8 @@ namespace Game.Combat
                     break;
 
                 case CapsuleCollider capsule:
-                    capsule.height = Mathf.Max(capsule.radius * 2f, range);
+                    if (attackSize.x > 0f) capsule.radius = attackSize.x * 0.5f;
+                    capsule.height = attackSize.z > 0f ? attackSize.z : Mathf.Max(capsule.radius * 2f, weaponRange);
 
                     Vector3 capsuleCenter = capsule.center;
                     capsuleCenter.z = capsule.height * 0.5f;
@@ -55,7 +63,7 @@ namespace Game.Combat
                     break;
 
                 default:
-                    Debug.LogWarning($"WeaponHitbox: ApplyRange поддерживает только BoxCollider/CapsuleCollider, у {name} другой тип коллайдера.", this);
+                    Debug.LogWarning($"WeaponHitbox: ApplyShape поддерживает только BoxCollider/CapsuleCollider, у {name} другой тип коллайдера.", this);
                     break;
             }
         }
@@ -89,7 +97,8 @@ namespace Game.Combat
             target: receiver.gameObject,
             basePhysicalDamage: _currentAttack.AttackData.damage,
             damageMultiplier: _currentAttack.DamageMultiplier,
-            attackData: _currentAttack.AttackData);
+            attackData: _currentAttack.AttackData,
+            attackerStats: _ownerStats);
 
             DamageResolver.ResolveDamage(packet, receiver);
         }

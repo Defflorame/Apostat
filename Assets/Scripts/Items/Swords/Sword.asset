@@ -12,10 +12,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: dd999c5fc5ed39247ad4d7670f1009bd, type: 3}
   m_Name: Sword
   m_EditorClassIdentifier: Assembly-CSharp::Game.Items.WeaponData
-  weaponId: 1
-  weaponName: Sword
+  itemId: Sword
+  itemName: Sword
   description: Lol
+  weight: 0
+  maxStackSize: 1
   lightAttack: {fileID: 11400000, guid: 572801964a886e24885039e03020cd1b, type: 2}
   heavyAttack: {fileID: 11400000, guid: d07e7bccc3c751349911ac020d09bb0d, type: 2}
   range: 2
   dodgeDistance: 3
+  isTwoHanded: 0

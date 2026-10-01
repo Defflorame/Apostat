@@ -10,17 +10,18 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: c9657281575a22942a43f198eb631cde, type: 3}
-  m_Name: Sword_light
+  m_Name: Dagger_light
   m_EditorClassIdentifier: Assembly-CSharp::Game.Items.AttackData
   attackType: 0
-  damage: 10
-  startupDuration: 0.15
+  damage: 5
+  startupDuration: 0.5
   activeDuration: 1
   recoveryDuration: 0.2
-  staminaCost: 15
+  staminaCost: 5
   canBeBlocked: 1
   canBeParried: 1
   parryWindow: 0.3
   staggerPower: 10
   maxChargeDamageMultiplier: 1
   maxChargeDuration: 1
+  hitboxSize: {x: 0.75, y: 1, z: 1.5}

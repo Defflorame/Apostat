@@ -6,8 +6,6 @@ namespace Game.Combat
     /// <summary>
     /// Описывает отдельное воздействие оружия на цель. Не применяет урон
     /// самостоятельно — это делает DamageResolver.
-    /// Поля ElementalDamage/CanBeBlocked/CanBeParried/StaggerPower
-    /// добавятся вместе с соответствующими системами (Phase 2, Phase 6).
     /// </summary>
     public readonly struct DamagePacket
     {
@@ -16,14 +14,16 @@ namespace Game.Combat
         public readonly int BasePhysicalDamage;
         public readonly float DamageMultiplier;
         public readonly AttackData AttackData;
+        public readonly Game.Player.Stats.CharacterStats AttackerStats;
 
-        public DamagePacket(GameObject source, GameObject target, int basePhysicalDamage, float damageMultiplier, AttackData attackData)
+        public DamagePacket(GameObject source, GameObject target, int basePhysicalDamage, float damageMultiplier, AttackData attackData, Game.Player.Stats.CharacterStats attackerStats = null)
         {
             Source = source;
             Target = target;
             BasePhysicalDamage = basePhysicalDamage;
             DamageMultiplier = damageMultiplier;
             AttackData = attackData;
+            AttackerStats = attackerStats;
         }
     }
 }

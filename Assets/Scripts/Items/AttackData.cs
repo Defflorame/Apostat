@@ -36,5 +36,9 @@ namespace Game.Items
         public float maxChargeDamageMultiplier = 2f;
         [Tooltip("Сколько секунд удержания ЛКМ считается полным зарядом (100%). Для Light Attack не используется.")]
         public float maxChargeDuration = 1.2f;
+
+        [Header("Hitbox shape")]
+        [Tooltip("Размеры хитбокса по осям: X — ширина (для горизонтальных свингов палашей и т.п.), Y — высота, Z — длина/дальность. Любая ось = 0 — взять из WeaponData.range (для Z) или из текущего размера коллайдера в инспекторе (для X/Y).")]
+        public Vector3 hitboxSize = Vector3.zero;
     }
 }

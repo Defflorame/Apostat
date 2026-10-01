@@ -63,8 +63,8 @@ namespace Game.Debugging
             labelStyle.normal.textColor = Color.white;
             GUIStyle headerStyle = new GUIStyle(labelStyle);
             headerStyle.fontSize = 14;
-            GUI.Box(new Rect(10, 10, 450, 360), "");
-            GUILayout.BeginArea(new Rect(25, 20, 420, 340));
+            GUI.Box(new Rect(1400, 700, 450, 360), "");
+            GUILayout.BeginArea(new Rect(1425, 720, 420, 340));
             GUILayout.Label("Stat Debug: 1-7 = +1 очко, R = сброс", headerStyle);
             GUILayout.Label("1 Str  2 Sta  3 Mana  4 MagDmg  5 Spd  6 Carry  7 Def", headerStyle);
             GUILayout.Space(10);

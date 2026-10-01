@@ -1,28 +1,29 @@
 using UnityEngine;
+using Game.Items;
 
 namespace Game.Combat
 {
     /// <summary>
     /// Incoming Damage + Shield Efficiency + Attacker Power + Player Modifiers
-    /// → Blocked Damage (раздел 31 документа).
-    /// Player Modifiers (характеристики игрока) подключатся в Phase 4 —
-    /// сейчас формула использует только базовую эффективность щита и силу атаки.
+    /// → Blocked Damage (раздел 31 документа). С Phase 4 shieldEfficiency
+    /// приходит из ShieldData экипированного щита (через CombatLoadout),
+    /// а не из фиксированного поля в инспекторе.
     /// </summary>
     public class BlockResolver : MonoBehaviour
     {
-        [Range(0f, 1f)]
-        [Tooltip("Доля урона, которую щит блокирует при слабой атаке.")]
-        [SerializeField] private float shieldEfficiency = 0.7f;
-
         [Tooltip("Урон атаки, при котором эффективность щита падает до нуля (чем сильнее удар — тем хуже блокируется).")]
         [SerializeField] private float attackerPowerSoftCap = 100f;
 
+        private float _currentShieldEfficiency;
+
         public bool IsBlocking { get; private set; }
 
-        public void StartBlock()
+        /// <summary>shield может быть null только если блок был начат без щита — вызывающий код (PlayerCombatController) не должен этого допускать.</summary>
+        public void StartBlock(ShieldData shield)
         {
+            _currentShieldEfficiency = shield != null ? shield.blockEfficiency : 0f;
             IsBlocking = true;
-            Debug.Log("BlockResolver: блок начат");
+            Debug.Log($"BlockResolver: блок начат (efficiency {_currentShieldEfficiency:F2})");
         }
 
         public void StopBlock()
@@ -31,15 +32,12 @@ namespace Game.Combat
             Debug.Log("BlockResolver: блок закончен");
         }
 
-        /// <summary>
-        /// Сила блока уменьшается при увеличении силы атаки противника.
-        /// </summary>
         public int ResolveBlockedDamage(int baseDamage)
         {
             if (baseDamage <= 0) return 0;
 
-            float attackerPowerPenalty = Mathf.Clamp01(baseDamage / attackerPowerSoftCap) * shieldEfficiency;
-            float effectiveEfficiency = Mathf.Clamp01(shieldEfficiency - attackerPowerPenalty);
+            float attackerPowerPenalty = Mathf.Clamp01(baseDamage / attackerPowerSoftCap) * _currentShieldEfficiency;
+            float effectiveEfficiency = Mathf.Clamp01(_currentShieldEfficiency - attackerPowerPenalty);
 
             int blockedDamage = Mathf.RoundToInt(baseDamage * (1f - effectiveEfficiency));
             return Mathf.Max(0, blockedDamage);

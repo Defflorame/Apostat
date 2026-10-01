@@ -1,13 +1,12 @@
 using UnityEngine;
 using Game.Items;
 using Game.Player;
+using Game.Player.Equipment;
 
 namespace Game.Combat
 {
     /// <summary>
     /// Координатор боя игрока. Не рассчитывает урон самостоятельно.
-    /// Отвечает за то, можно ли сейчас начать новое действие (стамина +
-    /// текущее состояние), и передаёт команду в нужный State.
     /// </summary>
     public class PlayerCombatController : MonoBehaviour
     {
@@ -19,6 +18,10 @@ namespace Game.Combat
         [SerializeField] private BlockResolver blockResolver;
         [SerializeField] private ParryResolver parryResolver;
 
+        [Header("Equipment")]
+        [SerializeField] private CombatLoadout combatLoadout;
+        [SerializeField] private PlayerEquipment playerEquipment;
+
         [Header("Attack tuning")]
         [Tooltip("Порог удержания ЛКМ: короче — Light Attack, дольше — начинается заряд (Heavy Attack).")]
         [SerializeField] private float chargeHoldThreshold = 0.25f;
@@ -29,10 +32,6 @@ namespace Game.Combat
 
         [Header("Parry tuning")]
         [SerializeField] private float parryStaminaCost = 10f;
-
-        [Header("Временная заглушка — заменится PlayerEquipment (Phase 4)")]
-        [Tooltip("Пока нет экипировки: вручную задаёт, есть ли щит. Если false — RMB выполняет Dodge вместо Block.")]
-        [SerializeField] private bool hasShieldEquipped;
 
         private FreeState _freeState;
         private AttackState _attackState;
@@ -49,18 +48,8 @@ namespace Game.Combat
         {
             _freeState = new FreeState();
             _attackState = new AttackState(weaponAttackController, ReturnToFree);
-
-            AttackData heavyAttackData = weaponAttackController.HeavyAttackData;
-            float maxChargeTime = heavyAttackData != null ? heavyAttackData.maxChargeDuration : 1f;
-            _chargeAttackState = new ChargeAttackState(weaponAttackController, stamina, maxChargeTime, ReturnToFree);
-            _blockState = new BlockState(blockResolver);
-
-            float dodgeDistance = weaponAttackController.EquippedWeapon != null
-                ? weaponAttackController.EquippedWeapon.dodgeDistance
-                : 0f;
-            float dodgeSpeed = dodgeDuration > 0f ? dodgeDistance / dodgeDuration : 0f;
-            _dodgeState = new DodgeState(playerMovement, dodgeSpeed, dodgeDuration, ReturnToFree);
-
+            _chargeAttackState = new ChargeAttackState(weaponAttackController, stamina, playerEquipment, ReturnToFree); _blockState = new BlockState(blockResolver, combatLoadout);
+            _dodgeState = new DodgeState(playerMovement, combatLoadout, dodgeDuration, ReturnToFree);
             _parryState = new ParryState(parryResolver, ReturnToFree);
         }
 
@@ -71,14 +60,10 @@ namespace Game.Combat
 
         private void Update()
         {
-            // Момент перехода "быстрый тап" -> "начали заряжать".
             if (!_attackButtonHeld || _chargeStarted) return;
 
             if (!CanPerformAction())
             {
-                // Текущее состояние сменилось (Parry/Dodge/Block) уже после нажатия ЛКМ —
-                // сбрасываем отслеживание удержания, чтобы ни заряд, ни последующий
-                // Light Attack по отпусканию кнопки не прервали непрерываемое состояние.
                 _attackButtonHeld = false;
                 return;
             }
@@ -121,7 +106,7 @@ namespace Game.Combat
 
         public void StartBlockOrDodge()
         {
-            if (hasShieldEquipped)
+            if (combatLoadout.HasShield)
             {
                 if (!CanPerformAction())
                 {
@@ -159,7 +144,8 @@ namespace Game.Combat
                 return;
             }
 
-            if (stamina != null && !stamina.TryConsume(dodgeStaminaCost))
+            float cost = dodgeStaminaCost * playerEquipment.GetStaminaCostMultiplier();
+            if (stamina != null && !stamina.TryConsume(cost))
             {
                 Debug.Log("PlayerCombatController: недостаточно stamina для Dodge");
                 return;
@@ -176,13 +162,26 @@ namespace Game.Combat
                 return;
             }
 
-            if (stamina != null && !stamina.TryConsume(parryStaminaCost))
+            float cost = parryStaminaCost * playerEquipment.GetStaminaCostMultiplier();
+            if (stamina != null && !stamina.TryConsume(cost))
             {
                 Debug.Log("PlayerCombatController: недостаточно stamina для Parry");
                 return;
             }
 
             stateMachine.ChangeState(_parryState);
+        }
+
+        /// <summary>Переключает активную руку при двух одноручных оружиях (dual-wield).</summary>
+        public void TrySwitchWeapon()
+        {
+            if (!CanPerformAction())
+            {
+                Debug.Log("PlayerCombatController: Switch weapon проигнорирован — текущее состояние не прерываемо");
+                return;
+            }
+
+            combatLoadout.TrySwitchActiveWeapon();
         }
 
         public bool CanPerformAction()
@@ -200,7 +199,14 @@ namespace Game.Combat
 
             AttackData lightAttackData = weaponAttackController.LightAttackData;
 
-            if (stamina != null && lightAttackData != null && !stamina.TryConsume(lightAttackData.staminaCost))
+            if (!lightAttackData)
+            {
+                Debug.Log("PlayerCombatController: Light Attack проигнорирован — игрок безоружен");
+                return;
+            }
+
+            float cost = lightAttackData.staminaCost * playerEquipment.GetStaminaCostMultiplier();
+            if (stamina != null && !stamina.TryConsume(cost))
             {
                 Debug.Log("PlayerCombatController: недостаточно stamina для Light Attack");
                 return;
