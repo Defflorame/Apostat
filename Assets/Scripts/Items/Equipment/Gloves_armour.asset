@@ -22,3 +22,4 @@ MonoBehaviour:
   - stat: 1
     type: 1
     value: 20
+  handPrefab: {fileID: 4366015116028132390, guid: 8af0a98546ff94240a93d451d47c7873, type: 3}

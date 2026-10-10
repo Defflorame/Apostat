@@ -17,6 +17,9 @@ namespace Game.Combat
 
         public event Action OnParryAttemptFinished;
 
+        /// <summary>Входящая атака была успешно парирована (для анимации/звука/VFX).</summary>
+        public event Action OnParrySucceeded;
+
         private bool _windowOpen;
         private Coroutine _routine;
 
@@ -75,6 +78,7 @@ namespace Game.Combat
                 attackerReceiver.ReceiveParry();
             }
 
+            OnParrySucceeded?.Invoke();
             return true;
         }
 

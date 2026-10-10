@@ -13,6 +13,8 @@ namespace Game.Combat
         private Collider _collider;
         private GameObject _owner;
         private Game.Player.Stats.CharacterStats _ownerStats;
+        private DamageReceiver _ownerReceiver;
+
         private AttackRuntime _currentAttack;
         private bool _isActive;
 
@@ -28,9 +30,10 @@ namespace Game.Combat
         {
             _owner = owner;
             _ownerStats = owner.GetComponentInParent<Game.Player.Stats.CharacterStats>();
+            _ownerReceiver = owner.GetComponentInParent<DamageReceiver>();
         }
 
-                /// <summary>
+        /// <summary>
         /// Растягивает коллайдер по трём осям под конкретную атаку. Ось,
         /// равная 0 в attackSize, сохраняет текущее значение коллайдера
         /// (X/Y) или берёт weaponRange как фолбэк (Z) — это позволяет
@@ -88,6 +91,7 @@ namespace Game.Combat
 
             DamageReceiver receiver = other.GetComponentInParent<DamageReceiver>();
             if (receiver == null) return;
+            if (receiver == _ownerReceiver) return;
             if (_currentAttack.AlreadyHitTargets.Contains(receiver)) return;
 
             _currentAttack.AlreadyHitTargets.Add(receiver);

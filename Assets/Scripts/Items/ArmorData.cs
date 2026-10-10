@@ -10,7 +10,12 @@ namespace Game.Items
 
         [SerializeField] private StatModifierDefinition[] statModifiers;
 
+        [Header("Visual")]
+        [Tooltip("Модель руки в этих перчатках. Используется ТОЛЬКО при slot = Gloves. Пусто — рука остаётся голой.")]
+        public GameObject handPrefab;
+
         public IReadOnlyList<StatModifierDefinition> StatModifiers => statModifiers;
+
         private void OnValidate()
         {
             if (slot == EquipmentSlot.Accessory)
