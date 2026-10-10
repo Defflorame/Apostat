@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 namespace Game.Player
@@ -10,6 +11,13 @@ namespace Game.Player
     public class PlayerActionStateMachine : MonoBehaviour
     {
         public IPlayerActionState CurrentState { get; private set; }
+
+        /// <summary>
+        /// Вызывается при каждой смене состояния ДО Enter() нового состояния.
+        /// Так порядок событий остаётся верным, даже если Enter() сразу
+        /// переключит состояние дальше.
+        /// </summary>
+        public event Action<IPlayerActionState> OnStateChanged;
 
         private void Update()
         {
@@ -28,6 +36,7 @@ namespace Game.Player
         {
             CurrentState?.Exit();
             CurrentState = newState;
+            OnStateChanged?.Invoke(newState);
             CurrentState?.Enter();
         }
 

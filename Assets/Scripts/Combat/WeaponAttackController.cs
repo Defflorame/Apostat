@@ -16,23 +16,22 @@ namespace Game.Combat
     {
         [SerializeField] private CombatLoadout combatLoadout;
         [SerializeField] private WeaponHitbox weaponHitbox;
+        [SerializeField] private LightComboTracker comboTracker;
 
+        public event Action<AttackData, float> OnAttackStarted;
         public event Action OnAttackFinished;
 
-        public AttackData LightAttackData => combatLoadout.CurrentWeapon != null ? combatLoadout.CurrentWeapon.lightAttack : null;
+        public AttackData LightAttackData => comboTracker.PeekNext();
         public AttackData HeavyAttackData => combatLoadout.CurrentWeapon != null ? combatLoadout.CurrentWeapon.heavyAttack : null;
         public WeaponData EquippedWeapon => combatLoadout.CurrentWeapon;
 
         private Coroutine _attackRoutine;
         private AttackRuntime _currentAttackRuntime;
 
-
         private void Awake()
         {
             weaponHitbox.SetOwner(gameObject);
         }
-
-
 
         private void OnEnable()
         {
@@ -46,10 +45,9 @@ namespace Game.Combat
 
         public void StartLightAttack()
         {
-            StartAttack(LightAttackData, 1f);
+            StartAttack(comboTracker.BeginLightAttack(), 1f);
         }
 
-        /// <summary>chargeRatio: 0 (не заряжено) .. 1 (полный заряд).</summary>
         public void StartHeavyAttack(float chargeRatio)
         {
             AttackData heavy = HeavyAttackData;
@@ -59,6 +57,8 @@ namespace Game.Combat
                 OnAttackFinished?.Invoke();
                 return;
             }
+
+            comboTracker.Reset();
 
             float multiplier = Mathf.Lerp(1f, heavy.maxChargeDamageMultiplier, Mathf.Clamp01(chargeRatio));
             Debug.Log($"WeaponAttackController: heavy attack, multiplier={multiplier:F2} (chargeRatio={chargeRatio:F2})");
@@ -78,6 +78,7 @@ namespace Game.Combat
             StopCoroutine(_attackRoutine);
             _attackRoutine = null;
             DisableHitbox();
+            comboTracker.NotifyAttackFinished();
             OnAttackFinished?.Invoke();
         }
 
@@ -104,6 +105,7 @@ namespace Game.Combat
             weaponHitbox.ApplyShape(attackData.hitboxSize, weaponRange);
 
             _currentAttackRuntime = new AttackRuntime(attackData, Time.time, damageMultiplier);
+            OnAttackStarted?.Invoke(attackData, damageMultiplier);
             _attackRoutine = StartCoroutine(RunAttackSequence(attackData));
         }
 
@@ -122,6 +124,7 @@ namespace Game.Combat
 
             _currentAttackRuntime.CurrentPhase = AttackPhase.Done;
             _attackRoutine = null;
+            comboTracker.NotifyAttackFinished();
             OnAttackFinished?.Invoke();
         }
 
@@ -129,6 +132,5 @@ namespace Game.Combat
         {
             CancelAttack();
         }
-
     }
 }

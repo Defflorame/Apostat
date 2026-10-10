@@ -13,5 +13,12 @@ namespace Game.Items
         [Range(0f, 1f)]
         [Tooltip("Доля урона, которую щит блокирует при слабой атаке.")]
         public float blockEfficiency = 0.7f;
+
+        [Header("Visual")]
+        [Tooltip("Модель щита для вида от первого лица. БЕЗ коллайдеров.")]
+        public GameObject prefab;
+
+        [Tooltip("Клипы щита для левой руки: Override от LeftHand_Base (Idle, BlockRaise).")]
+        public AnimatorOverrideController animatorOverride;
     }
 }

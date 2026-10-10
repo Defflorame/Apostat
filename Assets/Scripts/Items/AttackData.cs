@@ -40,5 +40,9 @@ namespace Game.Items
         [Header("Hitbox shape")]
         [Tooltip("Размеры хитбокса по осям: X — ширина (для горизонтальных свингов палашей и т.п.), Y — высота, Z — длина/дальность. Любая ось = 0 — взять из WeaponData.range (для Z) или из текущего размера коллайдера в инспекторе (для X/Y).")]
         public Vector3 hitboxSize = Vector3.zero;
+
+        [Header("Animation (только лёгкие атаки)")]
+        [Tooltip("Какой клип играть: 0 = LightAttack, 1 = LightAttack2, 2 = LightAttack3. Для тяжёлых атак игнорируется.")]
+        [Range(0, 2)] public int animationVariant = 0;
     }
 }
