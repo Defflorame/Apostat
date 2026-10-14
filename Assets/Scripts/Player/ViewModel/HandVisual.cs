@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 namespace Game.Player.ViewModel
@@ -27,6 +28,9 @@ namespace Game.Player.ViewModel
         private GameObject _instance;
         private GameObject _instanceSource;
 
+        /// <summary>Вызывается после каждой пересборки модели руки (в том числе при смене перчатки).</summary>
+        public event Action OnModelRebuilt;
+
         /// <summary>null — вернуть голую руку.</summary>
         public void SetGlove(GameObject handPrefab)
         {
@@ -44,6 +48,19 @@ namespace Game.Player.ViewModel
         public void SetVisible(bool visible)
         {
             gameObject.SetActive(visible);
+        }
+
+        /// <summary>Метка пальца на ТЕКУЩЕЙ модели руки; null, если модели или метки нет.</summary>
+        public FingerSocket FindFinger(FingerType finger)
+        {
+            if (_instance == null) return null;
+
+            foreach (FingerSocket socket in _instance.GetComponentsInChildren<FingerSocket>(true))
+            {
+                if (socket.Finger == finger) return socket;
+            }
+
+            return null;
         }
 
         private void Rebuild()
@@ -78,6 +95,8 @@ namespace Game.Player.ViewModel
 
             _instance.transform.localPosition = Vector3.zero;
             _instance.transform.localRotation = Quaternion.identity;
+
+            OnModelRebuilt?.Invoke();
         }
 
         private void DestroyInstance()

@@ -42,6 +42,26 @@ namespace Game.Combat
             }
         }
 
+        /// <summary>
+        /// Трата HP как ресурса (заклинания за HP). Не считается уроном:
+        /// нет OnDamageTaken, и никогда не убивает (минимум 1 HP).
+        /// </summary>
+        public void SpendHealth(int amount)
+        {
+            if (_isDead || amount <= 0) return;
+
+            CurrentHealth = Mathf.Max(1, CurrentHealth - amount);
+            OnHealthChanged?.Invoke(CurrentHealth, maxHealth);
+        }
+
+        public void Heal(int amount)
+        {
+            if (_isDead || amount <= 0) return;
+
+            CurrentHealth = Mathf.Min(maxHealth, CurrentHealth + amount);
+            OnHealthChanged?.Invoke(CurrentHealth, maxHealth);
+        }
+
         public void Kill()
         {
             if (_isDead) return;
@@ -52,7 +72,6 @@ namespace Game.Combat
         }
 
         public bool IsDead() => _isDead;
-
         /// <summary>
         /// Вызывается CharacterStats при (пере)расчёте характеристик.
         /// refillToFull=true — здоровье выставляется на новый максимум

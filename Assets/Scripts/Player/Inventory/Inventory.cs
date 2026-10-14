@@ -26,9 +26,15 @@ namespace Game.Player
                 ItemStack existingStack = FindStack(item.Data);
                 if (existingStack != null)
                 {
-                    existingStack.Quantity = Mathf.Min(existingStack.Quantity + quantity, item.Data.maxStackSize);
-                    OnInventoryChanged?.Invoke();
-                    return;
+                    int toAdd = Mathf.Min(item.Data.maxStackSize - existingStack.Quantity, quantity);
+                    existingStack.Quantity += toAdd;
+                    quantity -= toAdd;
+
+                    if (quantity <= 0)
+                    {
+                        OnInventoryChanged?.Invoke();
+                        return;
+                    }
                 }
             }
 
@@ -40,7 +46,7 @@ namespace Game.Player
         {
             if (item == null || quantity <= 0) return false;
 
-            ItemStack stack = _stacks.Find(s => s.Item == item);
+            ItemStack stack = _stacks.Find(s => s.Item == item) ?? (item.Data != null && item.Data.maxStackSize > 1 ? FindStack(item.Data) : null);
             if (stack == null) return false;
 
             stack.Quantity -= quantity;

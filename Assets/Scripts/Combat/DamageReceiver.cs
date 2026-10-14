@@ -2,7 +2,7 @@ using UnityEngine;
 using Game.Player.Stats;
 namespace Game.Combat
 {
-       /// <summary>
+    /// <summary>
     /// Общий компонент получения урона. Используется и игроком, и врагами.
     /// BlockResolver/ParryResolver/CharacterStats необязательны (может быть
     /// null) — назначаются только тем объектам, у которых они есть
@@ -30,8 +30,7 @@ namespace Game.Combat
         /// </summary>
         public void ReceiveDamage(DamagePacket packet, int baseDamage)
         {
-            if (packet.AttackData != null && packet.AttackData.canBeParried
-                && parryResolver != null && parryResolver.TryResolveIncomingAttack(packet))
+            if (parryResolver != null && parryResolver.TryResolveIncomingAttack(packet))
             {
                 Debug.Log($"{name}: атака спарирована и урон не получен.");
                 return;
@@ -64,7 +63,7 @@ namespace Game.Combat
         /// </summary>
         public void ReceiveStagger(float staggerPower)
         {
-           // Debug.Log($"{name}: received stagger {staggerPower:F1} (пока без игровой реакции)");
+            // Debug.Log($"{name}: received stagger {staggerPower:F1} (пока без игровой реакции)");
         }
 
         /// <summary>Вызывается, когда именно ЭТОТ объект был атакующим и его атаку парировали.</summary>

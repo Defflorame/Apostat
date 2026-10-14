@@ -3,11 +3,12 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 
 namespace Game.Player
-{ /// <summary>
-  /// Единственный класс, знающий о конкретных Input Actions.
-  /// Переводит физический ввод в игровые команды (события).
-  /// Не решает, что происходит после команды.
-  ///
+{
+    /// <summary>
+    /// Единственный класс, знающий о конкретных Input Actions.
+    /// Переводит физический ввод в игровые команды (события).
+    /// Не решает, что происходит после команды.
+    /// </summary>
     public class PlayerInputReader : MonoBehaviour
     {
         [SerializeField] private InputManager inputManager;
@@ -21,6 +22,8 @@ namespace Game.Player
         public event Action OnParryPressed;
         public event Action OnJumpPressed;
         public event Action OnSwitchWeaponPressed;
+        public event Action OnCastPressed;
+        public event Action<int> OnSwitchRing;
 
         private InputAction _moveAction;
         private InputAction _lookAction;
@@ -29,6 +32,8 @@ namespace Game.Player
         private InputAction _parryAction;
         private InputAction _jumpAction;
         private InputAction _switchWeaponAction;
+        private InputAction _castAction;
+        private InputAction _switchRingAction;
 
         private void Awake()
         {
@@ -41,6 +46,8 @@ namespace Game.Player
             _parryAction = playerMap.FindAction("Parry", throwIfNotFound: true);
             _jumpAction = playerMap.FindAction("Jump", throwIfNotFound: true);
             _switchWeaponAction = playerMap.FindAction("SwitchWeapon", throwIfNotFound: true);
+            _castAction = playerMap.FindAction("Cast", throwIfNotFound: true);
+            _switchRingAction = playerMap.FindAction("SwitchRing", throwIfNotFound: true);
 
             // Cursor.visible = false;
             // Cursor.lockState = CursorLockMode.Locked;
@@ -55,6 +62,8 @@ namespace Game.Player
             _parryAction.started += HandleParryPressed;
             _jumpAction.started += HandleJumpPressed;
             _switchWeaponAction.started += HandleSwitchWeaponPressed;
+            _castAction.started += HandleCastPressed;
+            _switchRingAction.performed += HandleSwitchRing;
         }
 
         private void OnDisable()
@@ -66,6 +75,8 @@ namespace Game.Player
             _parryAction.started -= HandleParryPressed;
             _jumpAction.started -= HandleJumpPressed;
             _switchWeaponAction.started -= HandleSwitchWeaponPressed;
+            _castAction.started -= HandleCastPressed;
+            _switchRingAction.performed -= HandleSwitchRing;
         }
 
         private void Update()
@@ -81,5 +92,14 @@ namespace Game.Player
         private void HandleParryPressed(InputAction.CallbackContext ctx) => OnParryPressed?.Invoke();
         private void HandleJumpPressed(InputAction.CallbackContext ctx) => OnJumpPressed?.Invoke();
         private void HandleSwitchWeaponPressed(InputAction.CallbackContext ctx) => OnSwitchWeaponPressed?.Invoke();
+        private void HandleCastPressed(InputAction.CallbackContext ctx) => OnCastPressed?.Invoke();
+
+        private void HandleSwitchRing(InputAction.CallbackContext ctx)
+        {
+            float scroll = ctx.ReadValue<Vector2>().y;
+            if (Mathf.Approximately(scroll, 0f)) return;
+
+            OnSwitchRing?.Invoke(scroll > 0f ? 1 : -1);
+        }
     }
 }

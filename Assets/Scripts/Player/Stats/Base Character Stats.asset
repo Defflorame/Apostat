@@ -13,12 +13,12 @@ MonoBehaviour:
   m_Name: Base Character Stats
   m_EditorClassIdentifier: Assembly-CSharp::Game.Player.Stats.BaseCharacterStats
   strength: 10
-  baseHealth: 50
+  baseHealth: 150
   healthPerStrengthPoint: 5
   physicalDamageBonusPerStrengthPoint: 1
   stamina: 100
   staminaRegenPerSecond: 15
-  mana: 50
+  mana: 300
   magicDamage: 5
   defense: 0
   damageReductionPerDefensePoint: 1

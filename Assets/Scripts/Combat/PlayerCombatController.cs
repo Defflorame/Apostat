@@ -1,5 +1,6 @@
 using UnityEngine;
 using Game.Items;
+using Game.Magic;
 using Game.Player;
 using Game.Player.Equipment;
 
@@ -17,6 +18,10 @@ namespace Game.Combat
         [SerializeField] private StaminaComponent stamina;
         [SerializeField] private BlockResolver blockResolver;
         [SerializeField] private ParryResolver parryResolver;
+
+        [Header("Magic")]
+        [SerializeField] private SpellCaster spellCaster;
+        [SerializeField] private RingSpellController ringSpellController;
 
         [Header("Equipment")]
         [SerializeField] private CombatLoadout combatLoadout;
@@ -39,6 +44,7 @@ namespace Game.Combat
         private BlockState _blockState;
         private DodgeState _dodgeState;
         private ParryState _parryState;
+        private CastState _castState;
 
         private bool _attackButtonHeld;
         private float _attackPressTime;
@@ -48,9 +54,11 @@ namespace Game.Combat
         {
             _freeState = new FreeState();
             _attackState = new AttackState(weaponAttackController, ReturnToFree);
-            _chargeAttackState = new ChargeAttackState(weaponAttackController, stamina, playerEquipment, ReturnToFree); _blockState = new BlockState(blockResolver, combatLoadout);
+            _chargeAttackState = new ChargeAttackState(weaponAttackController, TrySpendStamina, ReturnToFree);
+            _blockState = new BlockState(blockResolver, combatLoadout);
             _dodgeState = new DodgeState(playerMovement, combatLoadout, dodgeDuration, ReturnToFree);
             _parryState = new ParryState(parryResolver, ReturnToFree);
+            _castState = new CastState(spellCaster, ringSpellController, ReturnToFree);
         }
 
         private void Start()
@@ -140,12 +148,11 @@ namespace Game.Combat
 
             if (!playerMovement.IsGrounded)
             {
-                Debug.Log("PlayerCombatController: Parry недоступен в воздухе");
+                Debug.Log("PlayerCombatController: Dodge недоступен в воздухе");
                 return;
             }
 
-            float cost = dodgeStaminaCost * playerEquipment.GetStaminaCostMultiplier();
-            if (stamina != null && !stamina.TryConsume(cost))
+            if (!TrySpendStamina(dodgeStaminaCost))
             {
                 Debug.Log("PlayerCombatController: недостаточно stamina для Dodge");
                 return;
@@ -162,14 +169,40 @@ namespace Game.Combat
                 return;
             }
 
-            float cost = parryStaminaCost * playerEquipment.GetStaminaCostMultiplier();
-            if (stamina != null && !stamina.TryConsume(cost))
+            if (!TrySpendStamina(parryStaminaCost))
             {
                 Debug.Log("PlayerCombatController: недостаточно stamina для Parry");
                 return;
             }
 
             stateMachine.ChangeState(_parryState);
+        }
+
+        /// <summary>Каст заклинания активного кольца. Стоимость списывает SpellCaster при входе в CastState.</summary>
+        public void TryCastSpell()
+        {
+            if (!CanPerformAction())
+            {
+                Debug.Log("PlayerCombatController: Cast проигнорирован — текущее состояние не прерываемо");
+                return;
+            }
+
+            SpellData spell = ringSpellController.ActiveSpell;
+            if (spell == null)
+            {
+                Debug.Log("PlayerCombatController: Cast проигнорирован — нет кольца с заклинанием");
+                return;
+            }
+
+            if (!spellCaster.CanCast(spell)) return;
+
+            stateMachine.ChangeState(_castState);
+        }
+
+        /// <summary>direction: +1 следующее кольцо, -1 предыдущее. Переключение разрешено в любом состоянии.</summary>
+        public void SwitchRing(int direction)
+        {
+            ringSpellController.SwitchRing(direction);
         }
 
         /// <summary>Переключает активную руку при двух одноручных оружиях (dual-wield).</summary>
@@ -205,8 +238,7 @@ namespace Game.Combat
                 return;
             }
 
-            float cost = lightAttackData.staminaCost * playerEquipment.GetStaminaCostMultiplier();
-            if (stamina != null && !stamina.TryConsume(cost))
+            if (!TrySpendStamina(lightAttackData.staminaCost))
             {
                 Debug.Log("PlayerCombatController: недостаточно stamina для Light Attack");
                 return;
@@ -218,6 +250,26 @@ namespace Game.Combat
         private void ReturnToFree()
         {
             stateMachine.ChangeState(_freeState);
+        }
+
+        /// <summary>Единственное место, где игрок тратит стамину на действие: базовая цена × множитель нагрузки экипировки.</summary>
+        private bool TrySpendStamina(float baseCost)
+        {
+            if (stamina == null) return true;
+            return stamina.TryConsume(baseCost * playerEquipment.GetStaminaCostMultiplier());
+        }
+
+        /// <summary>Оборвать всё, что игрок делает сейчас (смерть, позже — оглушение).</summary>
+        public void CancelAllActions()
+        {
+            _attackButtonHeld = false;
+            _chargeStarted = false;
+
+            weaponAttackController.CancelAttack(); // если шла атака — сам вернёт во Free
+            if (stateMachine.CurrentState != _freeState)
+            {
+                stateMachine.ChangeState(_freeState); // Cast / Block / Dodge / Parry / Charge
+            }
         }
     }
 }

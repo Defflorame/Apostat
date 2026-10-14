@@ -166,9 +166,7 @@ namespace Game.Player
                 _effectiveSpeed = 5f;
                 return;
             }
-
-            float currentWeight = playerEquipment != null ? playerEquipment.GetTotalWeight() : 0f;
-            float loadRatio = EncumbranceService.GetLoadRatio(currentWeight, characterStats.Stats.CarryWeightLimit);
+            float loadRatio = playerEquipment != null ? playerEquipment.GetLoadRatio() : 0f;
             _effectiveSpeed = characterStats.Stats.MovementSpeed * EncumbranceService.GetMovementMultiplier(loadRatio);
         }
     }

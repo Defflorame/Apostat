@@ -2,7 +2,7 @@ using UnityEngine;
 using Game.Combat;
 
 namespace Game.Player
-{    
+{
     /// <summary>
     /// Координатор игрока. НЕ содержит: формулы движения, логику камеры,
     /// расчёт урона, инвентарь, экипировку, магию.
@@ -33,6 +33,8 @@ namespace Game.Player
             inputReader.OnParryPressed += HandleParryPressed;
             inputReader.OnJumpPressed += HandleJumpPressed;
             inputReader.OnSwitchWeaponPressed += HandleSwitchWeaponPressed;
+            inputReader.OnCastPressed += HandleCastPressed;
+            inputReader.OnSwitchRing += HandleSwitchRing;
             healthComponent.OnDeath += HandleDeath;
         }
 
@@ -47,6 +49,8 @@ namespace Game.Player
             inputReader.OnParryPressed -= HandleParryPressed;
             inputReader.OnJumpPressed -= HandleJumpPressed;
             inputReader.OnSwitchWeaponPressed -= HandleSwitchWeaponPressed;
+            inputReader.OnCastPressed -= HandleCastPressed;
+            inputReader.OnSwitchRing -= HandleSwitchRing;
             healthComponent.OnDeath -= HandleDeath;
         }
 
@@ -72,6 +76,7 @@ namespace Game.Player
 
         public void HandleDeath()
         {
+            combatController.CancelAllActions();
             DisablePlayer();
         }
 
@@ -132,6 +137,18 @@ namespace Game.Player
         {
             if (!_isEnabled) return;
             combatController.TrySwitchWeapon();
+        }
+
+        private void HandleCastPressed()
+        {
+            if (!_isEnabled) return;
+            combatController.TryCastSpell();
+        }
+
+        private void HandleSwitchRing(int direction)
+        {
+            if (!_isEnabled) return;
+            combatController.SwitchRing(direction);
         }
     }
 }

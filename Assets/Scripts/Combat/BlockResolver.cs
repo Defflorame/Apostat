@@ -11,8 +11,13 @@ namespace Game.Combat
     /// </summary>
     public class BlockResolver : MonoBehaviour
     {
-        [Tooltip("Урон атаки, при котором эффективность щита падает до нуля (чем сильнее удар — тем хуже блокируется).")]
+        [Tooltip("Урон атаки, при котором эффективность щита падает до нуля...")]
         [SerializeField] private float attackerPowerSoftCap = 100f;
+
+        [Header("Stamina")]
+        [SerializeField] private StaminaComponent stamina;
+        [Tooltip("Сколько стамины стоит каждая единица урона, поглощённого щитом.")]
+        [SerializeField] private float staminaPerAbsorbedDamage = 0.5f;
 
         private float _currentShieldEfficiency;
 
@@ -39,8 +44,16 @@ namespace Game.Combat
             float attackerPowerPenalty = Mathf.Clamp01(baseDamage / attackerPowerSoftCap) * _currentShieldEfficiency;
             float effectiveEfficiency = Mathf.Clamp01(_currentShieldEfficiency - attackerPowerPenalty);
 
-            int blockedDamage = Mathf.RoundToInt(baseDamage * (1f - effectiveEfficiency));
-            return Mathf.Max(0, blockedDamage);
+            int damageAfterBlock = Mathf.Max(0, Mathf.RoundToInt(baseDamage * (1f - effectiveEfficiency)));
+            int absorbed = baseDamage - damageAfterBlock;
+
+            if (stamina != null && !stamina.TryConsume(absorbed * staminaPerAbsorbedDamage))
+            {
+                Debug.Log("BlockResolver: не хватило stamina — гард пробит, урон проходит полностью");
+                return baseDamage;
+            }
+
+            return damageAfterBlock;
         }
     }
 }
