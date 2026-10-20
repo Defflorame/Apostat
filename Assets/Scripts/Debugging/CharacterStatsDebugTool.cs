@@ -2,6 +2,7 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using Game.Combat;
 using Game.Player.Stats;
+using Game.Stats;
 
 namespace Game.Debugging
 {

@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using UnityEngine;
 using Game.Items;
 using Game.Player.Stats;
+using Game.Stats;
+using Game.Combat;
 
 namespace Game.Player.Equipment
 {
@@ -31,6 +33,8 @@ namespace Game.Player.Equipment
         public HandEquipment Hands => handEquipment;
         public IReadOnlyList<ItemInstance> EquippedRings => _equippedRings;
 
+        [SerializeField] private ElementResistanceModifiers resistanceModifiers;
+
         public ItemInstance GetEquipped(EquipmentSlot slot)
         {
             return _slots.TryGetValue(slot, out ItemInstance item) ? item : null;
@@ -44,11 +48,12 @@ namespace Game.Player.Equipment
                 return false;
             }
 
+            if (!TryTakeFromInventory(item)) return false;
             UnequipInternal(slot);
-            inventory.RemoveItem(item);
 
             _slots[slot] = item;
             EquipmentModifierService.ApplyItemModifiers(characterStats, item);
+            EquipmentModifierService.ApplyItemResistances(resistanceModifiers, item);
             OnEquipmentChanged?.Invoke();
             return true;
         }
@@ -78,9 +83,10 @@ namespace Game.Player.Equipment
                 return false;
             }
 
-            inventory.RemoveItem(item);
+            if (!TryTakeFromInventory(item)) return false;
             _equippedRings.Add(item);
             EquipmentModifierService.ApplyItemModifiers(characterStats, item);
+            EquipmentModifierService.ApplyItemResistances(resistanceModifiers, item);   // новая
             OnEquipmentChanged?.Invoke();
             return true;
         }
@@ -90,8 +96,8 @@ namespace Game.Player.Equipment
             if (item == null || !_equippedRings.Remove(item)) return false;
 
             EquipmentModifierService.RemoveItemModifiers(characterStats, item);
+            EquipmentModifierService.RemoveItemResistances(resistanceModifiers, item);  // новая
             inventory.AddItem(item);
-            OnEquipmentChanged?.Invoke();
             return true;
         }
 
@@ -100,7 +106,7 @@ namespace Game.Player.Equipment
         {
             if (!IsItemOfType<WeaponData>(item, "оружием")) return false;
 
-            inventory.RemoveItem(item);
+            if (!TryTakeFromInventory(item)) return false;
             bool success = handEquipment.EquipMainHandWeapon(item, out ItemInstance previousMainHand, out ItemInstance displacedOffHand);
             return FinishHandEquip(success, item, previousMainHand, displacedOffHand);
         }
@@ -120,7 +126,7 @@ namespace Game.Player.Equipment
         {
             if (!IsItemOfType<WeaponData>(item, "оружием")) return false;
 
-            inventory.RemoveItem(item);
+            if (!TryTakeFromInventory(item)) return false;
             bool success = handEquipment.EquipOffHandWeapon(item, out ItemInstance displaced);
             return FinishHandEquip(success, item, displaced);
         }
@@ -129,7 +135,7 @@ namespace Game.Player.Equipment
         {
             if (!IsItemOfType<ShieldData>(item, "щитом")) return false;
 
-            inventory.RemoveItem(item);
+            if (!TryTakeFromInventory(item)) return false;
             bool success = handEquipment.EquipShield(item, out ItemInstance displaced);
             return FinishHandEquip(success, item, displaced);
         }
@@ -155,9 +161,16 @@ namespace Game.Player.Equipment
             return EncumbranceService.GetLoadRatio(GetTotalWeight(), characterStats.Stats.CarryWeightLimit);
         }
 
-        public float GetStaminaCostMultiplier()
+        /// <summary>
+        /// Забирает из инвентаря именно этот экземпляр. false — его там нет: экипировать
+        /// нельзя, иначе предмет появится «из воздуха» (дубликат).
+        /// </summary>
+        private bool TryTakeFromInventory(ItemInstance item)
         {
-            return EncumbranceService.GetStaminaCostMultiplier(GetLoadRatio());
+            if (item != null && inventory.RemoveItem(item)) return true;
+
+            Debug.LogWarning($"PlayerEquipment: {item?.Data?.itemName} нет в инвентаре — экипировать нельзя.", this);
+            return false;
         }
 
         private bool CanEquipToSlot(ItemInstance item, EquipmentSlot slot)
@@ -208,6 +221,7 @@ namespace Game.Player.Equipment
             }
 
             EquipmentModifierService.RemoveItemModifiers(characterStats, item);
+            EquipmentModifierService.RemoveItemResistances(resistanceModifiers, item);
             _slots.Remove(slot);
             inventory.AddItem(item);
             return item;

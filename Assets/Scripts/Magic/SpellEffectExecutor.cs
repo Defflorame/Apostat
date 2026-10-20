@@ -1,34 +1,59 @@
 using UnityEngine;
-using Game.Player.Stats;
+using Game.Stats;
 
 namespace Game.Magic
 {
     /// <summary>
-    /// Создаёт эффект заклинания в мире. Сейчас умеет только снаряд;
-    /// новые типы эффектов добавляются здесь, а не в SpellCaster.
-    /// Висит на объекте-заклинателе (он же source урона).
+    /// Собирает SpellCastContext и выполняет эффекты заклинания по порядку.
+    /// О конкретных типах эффектов не знает — новые эффекты добавляются
+    /// созданием нового SpellEffectData, а не правкой этого класса.
+    /// Висит на КОРНЕ объекта-заклинателя: его gameObject — источник урона,
+    /// а коллайдеры всех его детей считаются «своими» и не поражаются.
     /// </summary>
     public class SpellEffectExecutor : MonoBehaviour
     {
-        [Tooltip("Откуда вылетает снаряд — обычно камера игрока.")]
+        [Tooltip("Откуда вылетают эффекты и куда смотрит прицел — обычно камера игрока.")]
         [SerializeField] private Transform castOrigin;
         [SerializeField] private CharacterStats characterStats;
+        [Tooltip("Слои, которые считаются целью при прицеливании (хитскан, зоны) и областью поражения (взрывы).")]
+        [SerializeField] private LayerMask aimMask = ~0;
 
-        public void Execute(SpellData spell)
+        /// <summary>
+        /// Выпускает все эффекты. false — выпускать нечего или хотя бы один эффект не может сработать:
+        /// тогда не выполняется НИ ОДИН эффект и SpellCaster ничего не списывает.
+        /// </summary>
+        public bool Execute(SpellData spell)
         {
-            if (spell.projectilePrefab == null)
+            if (spell.effects == null || spell.effects.Length == 0)
             {
-                Debug.LogWarning($"SpellEffectExecutor: у {spell.name} не назначен projectilePrefab.", this);
-                return;
+                Debug.LogWarning($"SpellEffectExecutor: у {spell.name} не назначено ни одного эффекта.", this);
+                return false;
             }
 
-            // Временно: MagicDamage прибавляется плоско. В Phase 6 это уйдёт
-            // в ElementalDamageResolver/DamageResolver вместе со стихиями.
-            int magicBonus = characterStats != null ? Mathf.RoundToInt(characterStats.Stats.MagicDamage) : 0;
-            int damage = spell.damage + magicBonus;
+            if (castOrigin == null)
+            {
+                Debug.LogWarning("SpellEffectExecutor: не назначен castOrigin.", this);
+                return false;
+            }
 
-            SpellProjectile projectile = Instantiate(spell.projectilePrefab, castOrigin.position, castOrigin.rotation);
-            projectile.Initialize(spell, gameObject, damage);
+            float magicDamage = characterStats != null ? characterStats.Stats.MagicDamage : 0f;
+            var context = new SpellCastContext(spell, gameObject, castOrigin, magicDamage, aimMask);
+
+            foreach (SpellEffectData effect in spell.effects)
+            {
+                if (effect != null && !effect.CanExecute(context))
+                {
+                    Debug.Log($"SpellEffectExecutor: эффект {effect.name} не может сработать — каст {spell.name} сорван без трат");
+                    return false;
+                }
+            }
+
+            foreach (SpellEffectData effect in spell.effects)
+            {
+                if (effect != null) effect.Execute(context);
+            }
+
+            return true;
         }
     }
 }

@@ -1,4 +1,4 @@
-using Game.Player.Stats;
+using Game.Stats;
 
 namespace Game.Items
 {

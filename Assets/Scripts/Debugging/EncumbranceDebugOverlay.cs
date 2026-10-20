@@ -1,6 +1,7 @@
 using UnityEngine;
 using Game.Player.Stats;
 using Game.Player.Equipment;
+using Game.Stats;
 
 namespace Game.Debugging
 {

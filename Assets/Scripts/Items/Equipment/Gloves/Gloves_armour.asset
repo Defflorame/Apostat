@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: bd12c70fad8464a44b0f5efadfdbb287, type: 3}
   m_Name: Gloves_armour
   m_EditorClassIdentifier: Assembly-CSharp::Game.Items.ArmorData
-  itemId: Gloves_Arm
+  id: 1957847090
   itemName: Gloves_Arm
   description: 
   weight: 2

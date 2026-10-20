@@ -1,8 +1,8 @@
 using System.Collections.Generic;
 using UnityEngine;
 using Game.Items;
-using Game.Player;
 using Game.Player.Equipment;
+using Game.Combat;
 
 namespace Game.Debugging
 {

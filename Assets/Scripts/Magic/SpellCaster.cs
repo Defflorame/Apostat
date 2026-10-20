@@ -6,9 +6,10 @@ using Game.Combat;
 namespace Game.Magic
 {
     /// <summary>
-    /// Проверяет и списывает стоимость заклинания, ведёт кулдауны.
-    /// Не знает про кольца, ввод и состояния — получает SpellData снаружи.
-    /// События нужны будущим PlayerAnimator/Audio/VFX.
+    /// Проверяет и списывает стоимость заклинания, ведёт кулдауны и сообщает о
+    /// стадиях каста событиями (для будущих PlayerAnimator/Audio/VFX/HUD).
+    /// Не знает про кольца, ввод и состояния: время заряда считает CastState.
+    /// Стоимость списывается и кулдаун стартует ТОЛЬКО в TryRelease.
     /// </summary>
     public class SpellCaster : MonoBehaviour
     {
@@ -17,7 +18,9 @@ namespace Game.Magic
         [SerializeField] private SpentHealthRecovery spentHealthRecovery;
         [SerializeField] private SpellEffectExecutor effectExecutor;
 
-        public event Action<SpellData> OnCastStarted;
+        public event Action<SpellData> OnChargeStarted;
+        public event Action<SpellData> OnChargeReady;
+        public event Action<SpellData> OnChargeCancelled;
         public event Action<SpellData> OnSpellReleased;
 
         private readonly Dictionary<SpellData, float> _readyAt = new Dictionary<SpellData, float>();
@@ -28,66 +31,109 @@ namespace Game.Magic
             return Mathf.Max(0f, readyAt - Time.time);
         }
 
+        /// <summary>Проверка при НАЖАТИИ: жив ли заклинатель, кулдаун, хватает ли ресурса. Ничего не списывает.</summary>
         public bool CanCast(SpellData spell)
         {
-            if (spell == null || health.IsDead()) return false;
+            if (!IsCasterAlive(spell)) return false;
 
             if (GetCooldownRemaining(spell) > 0f)
             {
-                Debug.Log($"SpellCaster: {spell.spellName} на кулдауне");
+                Debug.Log($"SpellCaster: {spell.name} на кулдауне");
                 return false;
             }
 
+            return HasResources(spell);
+        }
+
+        public void StartCharge(SpellData spell)
+        {
+            OnChargeStarted?.Invoke(spell);
+        }
+
+        public void ReportChargeReady(SpellData spell)
+        {
+            OnChargeReady?.Invoke(spell);
+        }
+
+        public void CancelCharge(SpellData spell)
+        {
+            Debug.Log($"SpellCaster: заряд {spell.name} отменён без трат");
+            OnChargeCancelled?.Invoke(spell);
+        }
+
+        /// <summary>
+        /// Выпуск: повторная проверка ресурса (за время заряда он мог измениться),
+        /// эффекты, списание стоимости, кулдаун. false — ничего не потрачено
+        /// (не хватает ресурса или эффекты не могут сработать: нет точки прицеливания и т.п.).
+        /// </summary>
+        public bool TryRelease(SpellData spell)
+        {
+            if (!IsCasterAlive(spell) || !HasResources(spell)) return false;
+
+            if (effectExecutor == null)
+            {
+                Debug.LogWarning("SpellCaster: не назначен SpellEffectExecutor.", this);
+                return false;
+            }
+
+            // Эффекты выпускаются до списания: если выпускать нечего — ничего не тратим.
+            if (!effectExecutor.Execute(spell)) return false;
+
+            PayCost(spell);
+            _readyAt[spell] = Time.time + spell.cooldown;
+            OnSpellReleased?.Invoke(spell);
+            return true;
+        }
+
+        private bool IsCasterAlive(SpellData spell)
+        {
+            return spell != null && health != null && !health.IsDead();
+        }
+
+        private bool HasResources(SpellData spell)
+        {
             switch (spell.resource)
             {
                 case SpellResource.Mana:
-                    if (!mana.CanSpend(spell.cost))
+                    if (mana == null)
                     {
-                        Debug.Log($"SpellCaster: недостаточно маны для {spell.spellName}");
+                        Debug.LogWarning("SpellCaster: не назначен ManaComponent.", this);
                         return false;
                     }
-                    break;
+
+                    if (!mana.CanSpend(spell.cost))
+                    {
+                        Debug.Log($"SpellCaster: недостаточно маны для {spell.name}");
+                        return false;
+                    }
+                    return true;
 
                 case SpellResource.Health:
                     // Заклинание за HP не может убить самого заклинателя.
                     if (health.CurrentHealth <= spell.cost)
                     {
-                        Debug.Log($"SpellCaster: недостаточно HP для {spell.spellName}");
+                        Debug.Log($"SpellCaster: недостаточно HP для {spell.name}");
                         return false;
                     }
-                    break;
+                    return true;
             }
 
-            return true;
+            return false;
         }
 
-        /// <summary>Проверяет, списывает стоимость, запускает кулдаун. Эффект выпускается позже — ReleaseSpell.</summary>
-        public bool BeginCast(SpellData spell)
+        private void PayCost(SpellData spell)
         {
-            if (!CanCast(spell)) return false;
-
             if (spell.resource == SpellResource.Mana)
             {
                 mana.TryConsume(spell.cost);
+                return;
             }
-            else
+
+            health.SpendHealth(spell.cost);
+            if (spell.healthCostRecovers && spentHealthRecovery != null)
             {
-                health.SpendHealth(spell.cost);
-                if (spell.healthCostRecovers && spentHealthRecovery != null)
-                {
-                    spentHealthRecovery.AddPending(spell.cost);
-                }
+                spentHealthRecovery.AddPending(spell.cost);
             }
-
-            _readyAt[spell] = Time.time + spell.cooldown;
-            OnCastStarted?.Invoke(spell);
-            return true;
-        }
-
-        public void ReleaseSpell(SpellData spell)
-        {
-            effectExecutor.Execute(spell);
-            OnSpellReleased?.Invoke(spell);
         }
     }
 }

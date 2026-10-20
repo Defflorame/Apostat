@@ -20,7 +20,7 @@ MonoBehaviour:
   staminaRegenPerSecond: 15
   mana: 300
   magicDamage: 5
-  defense: 0
+  defense: 10
   damageReductionPerDefensePoint: 1
   speed: 5
   carryWeight: 40

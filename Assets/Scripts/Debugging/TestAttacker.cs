@@ -17,6 +17,8 @@ namespace Game.Debugging
     {
         [SerializeField] private DamageReceiver target;
         [SerializeField] private AttackData simulatedAttack;
+        [Tooltip("Необязательно. Оружие, чьи стихия и эффекты при попадании добавляются к симулируемой атаке.")]
+        [SerializeField] private WeaponData simulatedWeapon;
 
         private void Update()
         {
@@ -41,7 +43,10 @@ namespace Game.Debugging
                 target: target.gameObject,
                 basePhysicalDamage: simulatedAttack.damage,
                 damageMultiplier: 1f,
-                attackData: simulatedAttack
+                attackData: simulatedAttack,
+                element: simulatedWeapon != null ? simulatedWeapon.element : null,
+                elementalDamage: simulatedWeapon != null ? simulatedWeapon.GetElementalDamage(simulatedAttack) : 0,
+                onHitEffects: simulatedWeapon != null ? simulatedWeapon.onHitEffects : null
             );
 
             DamageResolver.ResolveDamage(packet, target);

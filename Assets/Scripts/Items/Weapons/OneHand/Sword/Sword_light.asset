@@ -14,6 +14,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Game.Items.AttackData
   attackType: 0
   damage: 10
+  element: {fileID: 0}
+  elementalDamage: 0
+  onHitEffects: []
   startupDuration: 0.15
   activeDuration: 0.15
   recoveryDuration: 0.2

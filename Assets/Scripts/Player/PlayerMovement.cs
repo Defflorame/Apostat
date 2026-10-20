@@ -1,6 +1,8 @@
 using UnityEngine;
 using Game.Player.Stats;
 using Game.Player.Equipment;
+using Game.Magic;
+using Game.Stats;
 
 namespace Game.Player
 {
@@ -12,7 +14,7 @@ namespace Game.Player
     /// т.к. Equipment ещё не существовал.
     /// </summary>
     [RequireComponent(typeof(CharacterController))]
-    public class PlayerMovement : MonoBehaviour
+    public class PlayerMovement : MonoBehaviour, ILaunchable
     {
         [SerializeField] private CharacterStats characterStats;
         [SerializeField] private PlayerEquipment playerEquipment;
@@ -146,6 +148,17 @@ namespace Game.Player
             if (_movementLocked || !_controller.isGrounded) return;
 
             _verticalVelocity = Mathf.Sqrt(2f * Mathf.Abs(gravity) * jumpHeight);
+        }
+
+        /// <summary>
+        /// Мгновенный подброс на заданную высоту (заклинание прыжка). В отличие от Jump(),
+        /// не требует стоять на земле — ограничением служат мана и кулдаун заклинания.
+        /// </summary>
+        public void Launch(float height)
+        {
+            if (_movementLocked) return;
+
+            _verticalVelocity = Mathf.Sqrt(2f * Mathf.Abs(gravity) * Mathf.Max(0f, height));
         }
 
         private void HandleStatsChanged(DerivedCharacterStats stats)

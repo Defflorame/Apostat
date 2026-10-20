@@ -10,7 +10,7 @@ namespace Game.Items
     /// ей занимаются RingSpellController и SpellCaster.
     /// </summary>
     [CreateAssetMenu(fileName = "NewRingData", menuName = "Game/Items/Ring Data")]
-    public class RingData : ItemData, IStatModifierProvider
+    public class RingData : ItemData, IStatModifierProvider, IResistanceProvider
     {
         [SerializeField] private StatModifierDefinition[] statModifiers;
 
@@ -23,6 +23,10 @@ namespace Game.Items
         [SerializeField] private GameObject ringPrefab;
 
         public IReadOnlyList<StatModifierDefinition> StatModifiers => statModifiers;
+
+        [Header("Resistances")]
+        [SerializeField] private ElementResistanceDefinition[] elementResistances;
+        public IReadOnlyList<ElementResistanceDefinition> ElementResistances => elementResistances;
         public SpellData Spell => spell;
         public GameObject RingPrefab => ringPrefab;
     }

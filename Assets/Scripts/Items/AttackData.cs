@@ -18,6 +18,11 @@ namespace Game.Items
         public AttackType attackType = AttackType.Light;
         public int damage = 10;
 
+        [Header("Elemental damage")]
+        [Min(0f)]
+        [Tooltip("Множитель стихийного урона ОРУЖИЯ (WeaponData.elementalDamage) для этой атаки. 1 — как у оружия, 0 — атака без стихии. Сама стихия и её урон задаются на оружии.")]
+        public float elementalMultiplier = 1f;
+
         [Header("Timing (seconds)")]
         public float startupDuration = 0.15f;
         public float activeDuration = 0.1f;

@@ -1,0 +1,22 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0208469a4ab8f5045b0dfe419930defc, type: 3}
+  m_Name: Buff Ring
+  m_EditorClassIdentifier: Assembly-CSharp::Game.Items.RingData
+  id: -497205083
+  itemName: Buff Ring
+  description: 
+  weight: 0
+  maxStackSize: 1
+  statModifiers: []
+  spell: {fileID: 11400000, guid: 236736b29e11c0d459c1bc3e3bfd7f25, type: 2}
+  ringPrefab: {fileID: 7843369213486760749, guid: df04f9839ec3442468a0786fac2a3b91, type: 3}

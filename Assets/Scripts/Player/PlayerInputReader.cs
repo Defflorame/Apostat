@@ -23,6 +23,7 @@ namespace Game.Player
         public event Action OnJumpPressed;
         public event Action OnSwitchWeaponPressed;
         public event Action OnCastPressed;
+        public event Action OnCastReleased;
         public event Action<int> OnSwitchRing;
 
         private InputAction _moveAction;
@@ -63,6 +64,7 @@ namespace Game.Player
             _jumpAction.started += HandleJumpPressed;
             _switchWeaponAction.started += HandleSwitchWeaponPressed;
             _castAction.started += HandleCastPressed;
+            _castAction.canceled += HandleCastReleased;
             _switchRingAction.performed += HandleSwitchRing;
         }
 
@@ -76,6 +78,7 @@ namespace Game.Player
             _jumpAction.started -= HandleJumpPressed;
             _switchWeaponAction.started -= HandleSwitchWeaponPressed;
             _castAction.started -= HandleCastPressed;
+            _castAction.canceled -= HandleCastReleased;
             _switchRingAction.performed -= HandleSwitchRing;
         }
 
@@ -93,6 +96,7 @@ namespace Game.Player
         private void HandleJumpPressed(InputAction.CallbackContext ctx) => OnJumpPressed?.Invoke();
         private void HandleSwitchWeaponPressed(InputAction.CallbackContext ctx) => OnSwitchWeaponPressed?.Invoke();
         private void HandleCastPressed(InputAction.CallbackContext ctx) => OnCastPressed?.Invoke();
+        private void HandleCastReleased(InputAction.CallbackContext ctx) => OnCastReleased?.Invoke();
 
         private void HandleSwitchRing(InputAction.CallbackContext ctx)
         {

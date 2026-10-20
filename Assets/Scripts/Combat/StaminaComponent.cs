@@ -1,14 +1,14 @@
 using System;
 using UnityEngine;
+using Game.Player.Stats;
+using Game.Stats;
 
 namespace Game.Combat
 {
     /// <summary>
-    /// Выносливость игрока. С Phase 3 maxStamina и regenPerSecond приходят
-    /// из CharacterStats (характеристика Stamina определяет и то, и другое —
-    /// см. п. 3.7 Пояснительной записки) через SetMaxStamina/SetRegenPerSecond.
-    /// Сериализованные значения остались лишь значением по умолчанию —
-    /// на случай объектов без CharacterStats.
+    /// Выносливость. Если назначен CharacterStats — максимум и скорость
+    /// регенерации берутся из характеристик (подписка на OnStatsChanged).
+    /// Без него используются значения из инспектора.
     /// </summary>
     public class StaminaComponent : MonoBehaviour
     {
@@ -16,6 +16,8 @@ namespace Game.Combat
         [SerializeField] private float regenPerSecond = 15f;
         [Tooltip("Пауза перед стартом регенерации после траты стамины.")]
         [SerializeField] private float regenDelayAfterConsume = 0.5f;
+        [Tooltip("Необязательно. Если назначено — max и regen задаются характеристиками.")]
+        [SerializeField] private CharacterStats stats;
 
         public float CurrentStamina { get; private set; }
 
@@ -23,10 +25,30 @@ namespace Game.Combat
 
         private bool _regenEnabled = true;
         private float _regenBlockedUntil;
+        public float CostMultiplier { get; private set; } = 1f;
+
 
         private void Awake()
         {
             CurrentStamina = maxStamina;
+        }
+
+        private void OnEnable()
+        {
+            if (stats != null) stats.OnStatsChanged += HandleStatsChanged;
+        }
+
+        private void OnDisable()
+        {
+            if (stats != null) stats.OnStatsChanged -= HandleStatsChanged;
+        }
+
+        private void Start()
+        {
+            if (stats != null && stats.Stats != null)
+            {
+                ApplyStats(stats.Stats, refillToFull: true);
+            }
         }
 
         private void Update()
@@ -38,22 +60,24 @@ namespace Game.Combat
             Restore(regenPerSecond * Time.deltaTime);
         }
 
-        public bool CanSpend(float amount)
+        /// <summary>baseCost — базовая цена; множитель нагрузки применяется внутри.</summary>
+        public bool CanSpend(float baseCost)
         {
-            return CurrentStamina >= amount;
+            return CurrentStamina >= baseCost * CostMultiplier;
         }
 
-        public bool TryConsume(float amount)
+        public bool TryConsume(float baseCost)
         {
-            if (amount <= 0f) return true;
+            if (baseCost <= 0f) return true;
 
-            if (!CanSpend(amount))
+            float cost = baseCost * CostMultiplier;
+            if (CurrentStamina < cost)
             {
-                Debug.Log($"StaminaComponent: недостаточно stamina ({CurrentStamina:F1}/{amount:F1})");
+                Debug.Log($"StaminaComponent: недостаточно stamina ({CurrentStamina:F1}/{cost:F1})");
                 return false;
             }
 
-            CurrentStamina -= amount;
+            CurrentStamina -= cost;
             _regenBlockedUntil = Time.time + regenDelayAfterConsume;
             OnStaminaChanged?.Invoke(CurrentStamina, maxStamina);
             return true;
@@ -71,18 +95,22 @@ namespace Game.Combat
 
         public void StopRegeneration() => _regenEnabled = false;
 
-        /// <summary>Вызывается CharacterStats при (пере)расчёте характеристик.</summary>
-        public void SetMaxStamina(float newMax, bool refillToFull)
+        private void HandleStatsChanged(DerivedCharacterStats derived)
         {
-            maxStamina = Mathf.Max(0f, newMax);
+            ApplyStats(derived, refillToFull: false);
+        }
+
+        private void ApplyStats(DerivedCharacterStats derived, bool refillToFull)
+        {
+            maxStamina = Mathf.Max(0f, derived.MaxStamina);
+            regenPerSecond = Mathf.Max(0f, derived.StaminaRegenPerSecond);
             CurrentStamina = refillToFull ? maxStamina : Mathf.Min(CurrentStamina, maxStamina);
             OnStaminaChanged?.Invoke(CurrentStamina, maxStamina);
         }
 
-        /// <summary>Вызывается CharacterStats при (пере)расчёте характеристик.</summary>
-        public void SetRegenPerSecond(float value)
+        public void SetCostMultiplier(float multiplier)
         {
-            regenPerSecond = Mathf.Max(0f, value);
+            CostMultiplier = Mathf.Max(0f, multiplier);
         }
     }
 }

@@ -1,6 +1,7 @@
 using System.Collections.Generic;
+using Game.Combat;
 using Game.Items;
-using Game.Player.Stats;
+using Game.Stats;
 
 namespace Game.Player.Equipment
 {
@@ -28,6 +29,23 @@ namespace Game.Player.Equipment
         {
             if (stats == null || item == null) return;
             stats.RemoveModifiersFromSource(item);
+        }
+
+        public static void ApplyItemResistances(ElementResistanceModifiers target, ItemInstance item)
+        {
+            if (target == null || item?.Data == null) return;
+            if (!(item.Data is IResistanceProvider provider) || provider.ElementResistances == null) return;
+
+            foreach (ElementResistanceDefinition r in provider.ElementResistances)
+            {
+                target.Add(item, r.element, r.percent);
+            }
+        }
+
+        public static void RemoveItemResistances(ElementResistanceModifiers target, ItemInstance item)
+        {
+            if (target == null || item == null) return;
+            target.RemoveFromSource(item);
         }
 
         public static float GetTotalWeight(IEnumerable<ItemInstance> slotItems, IEnumerable<ItemInstance> rings, ItemInstance weapon, ItemInstance shield)

@@ -1,8 +1,9 @@
 using System;
 using UnityEngine;
 using Game.Items;
+using Game.Player.Equipment;
 
-namespace Game.Player.Equipment
+namespace Game.Combat
 {
     /// <summary>
     /// Read-only срез HandEquipment для Combat-систем. CurrentWeapon отдаёт

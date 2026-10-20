@@ -5,19 +5,39 @@ using Game.Magic;
 namespace Game.Player
 {
     /// <summary>
-    /// Каст заклинания активного кольца: windup → выпуск → recovery.
-    /// Время идёт через Tick (без корутин). Во время каста игрок может
-    /// двигаться, но не может начать другое боевое действие.
+    /// Каст заклинания активного кольца удержанием кнопки.
+    ///   Charging — кнопка зажата, ничего не списывается. Отпустить раньше castTime = отмена без трат.
+    ///     После castTime заряд готов и держится сколько угодно; при отпускании SpellCaster.TryRelease
+    ///     выпускает эффекты, списывает стоимость и запускает кулдаун.
+    ///   Recovery — после выпуска игрок ещё recoveryTime не может начать другое боевое действие.
+    /// castTime = 0 (SpellData.IsInstant) — мгновенный каст: выпуск прямо в Enter(), без заряда.
+    /// Charging прерываем (CanInterrupt): любое другое боевое действие уходит в другое состояние,
+    /// Exit() отменяет заряд бесплатно. Ходить можно во всех фазах, замедления нет.
+    /// Время идёт через Tick, без корутин.
+    ///
+    /// TODO Phase 8: прерывание заряда полученным ударом не реализовано —
+    /// DamageReceiver.ReceiveStagger пока пустой. В Phase 8 решить, прерывать ли заряд
+    /// только сильными ударами (по порогу staggerPower), чтобы сложность оставалась
+    /// между Lunacid и King's Field. Прерывать достаточно переходом в FreeState:
+    /// Exit() сам отменит заряд без трат.
     /// </summary>
     public class CastState : IPlayerActionState
     {
+        private enum CastPhase
+        {
+            Charging,
+            Recovery,
+            Done
+        }
+
         private readonly SpellCaster _spellCaster;
         private readonly RingSpellController _ringSpellController;
         private readonly Action _onFinished;
 
         private SpellData _spell;
+        private CastPhase _phase = CastPhase.Done;
         private float _elapsed;
-        private bool _released;
+        private bool _chargeReady;
 
         public CastState(SpellCaster spellCaster, RingSpellController ringSpellController, Action onFinished)
         {
@@ -26,42 +46,105 @@ namespace Game.Player
             _onFinished = onFinished;
         }
 
+        /// <summary>Игрок сейчас держит кнопку и заряд ещё не выпущен.</summary>
+        public bool IsCharging => _phase == CastPhase.Charging && _spell != null;
+
         public void Enter()
         {
             _elapsed = 0f;
-            _released = false;
+            _chargeReady = false;
             _spell = _ringSpellController.ActiveSpell;
 
-            if (_spell == null || !_spellCaster.BeginCast(_spell))
+            if (_spell == null || !_spellCaster.CanCast(_spell))
             {
-                _spell = null; // завершится в первом Tick
+                Abort(); // завершится в первом Tick
+                return;
             }
+
+            if (_spell.IsInstant)
+            {
+                if (_spellCaster.TryRelease(_spell))
+                {
+                    _phase = CastPhase.Recovery;
+                }
+                else
+                {
+                    Abort();
+                }
+                return;
+            }
+
+            _phase = CastPhase.Charging;
+            _spellCaster.StartCharge(_spell);
         }
 
         public void Tick()
         {
-            if (_spell == null)
+            switch (_phase)
             {
-                _onFinished?.Invoke();
-                return;
-            }
+                case CastPhase.Done:
+                    _onFinished?.Invoke();
+                    break;
 
-            _elapsed += Time.deltaTime;
+                case CastPhase.Charging:
+                    _elapsed += Time.deltaTime;
+                    if (!_chargeReady && _elapsed >= _spell.castTime)
+                    {
+                        _chargeReady = true;
+                        _spellCaster.ReportChargeReady(_spell);
+                    }
+                    break;
 
-            if (!_released && _elapsed >= _spell.castTime)
-            {
-                _released = true;
-                _spellCaster.ReleaseSpell(_spell);
-            }
-
-            if (_elapsed >= _spell.castTime + _spell.recoveryTime)
-            {
-                _onFinished?.Invoke();
+                case CastPhase.Recovery:
+                    _elapsed += Time.deltaTime;
+                    if (_elapsed >= _spell.recoveryTime)
+                    {
+                        _onFinished?.Invoke();
+                    }
+                    break;
             }
         }
 
-        public void Exit() { }
+        /// <summary>Кнопка каста отпущена. Вне фазы Charging игнорируется.</summary>
+        public void NotifyReleased()
+        {
+            if (!IsCharging) return;
 
-        public bool CanInterrupt() => false;
+            // Каст срывается без трат, если: отпустили раньше castTime, за время заряда
+            // сменилось активное кольцо, не хватило ресурса или эффекты не могут сработать.
+            bool released = _chargeReady
+                && _ringSpellController.ActiveSpell == _spell
+                && _spellCaster.TryRelease(_spell);
+
+            if (released)
+            {
+                _phase = CastPhase.Recovery;
+                _elapsed = 0f;
+            }
+            else
+            {
+                _onFinished?.Invoke(); // Exit() отправит событие отмены заряда
+            }
+        }
+
+        public void Exit()
+        {
+            if (IsCharging)
+            {
+                _spellCaster.CancelCharge(_spell);
+            }
+
+            _spell = null;
+            _phase = CastPhase.Done;
+        }
+
+        /// <summary>Заряд можно прервать любым другим действием; recovery после выпуска — нельзя.</summary>
+        public bool CanInterrupt() => _phase != CastPhase.Recovery;
+
+        private void Abort()
+        {
+            _spell = null;
+            _phase = CastPhase.Done;
+        }
     }
 }

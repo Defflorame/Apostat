@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0208469a4ab8f5045b0dfe419930defc, type: 3}
   m_Name: Fireball Ring
   m_EditorClassIdentifier: Assembly-CSharp::Game.Items.RingData
-  itemId: Fireball RIng
+  id: -1684016284
   itemName: Fireball RIng
   description: 
   weight: 0

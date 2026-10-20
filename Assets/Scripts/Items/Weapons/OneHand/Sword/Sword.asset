@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: dd999c5fc5ed39247ad4d7670f1009bd, type: 3}
   m_Name: Sword
   m_EditorClassIdentifier: Assembly-CSharp::Game.Items.WeaponData
-  itemId: Sword
+  id: -692707941
   itemName: Sword
   description: Lol
   weight: 0

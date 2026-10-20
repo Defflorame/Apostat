@@ -34,6 +34,7 @@ namespace Game.Player
             inputReader.OnJumpPressed += HandleJumpPressed;
             inputReader.OnSwitchWeaponPressed += HandleSwitchWeaponPressed;
             inputReader.OnCastPressed += HandleCastPressed;
+            inputReader.OnCastReleased += HandleCastReleased;
             inputReader.OnSwitchRing += HandleSwitchRing;
             healthComponent.OnDeath += HandleDeath;
         }
@@ -50,6 +51,7 @@ namespace Game.Player
             inputReader.OnJumpPressed -= HandleJumpPressed;
             inputReader.OnSwitchWeaponPressed -= HandleSwitchWeaponPressed;
             inputReader.OnCastPressed -= HandleCastPressed;
+            inputReader.OnCastReleased -= HandleCastReleased;
             inputReader.OnSwitchRing -= HandleSwitchRing;
             healthComponent.OnDeath -= HandleDeath;
         }
@@ -143,6 +145,12 @@ namespace Game.Player
         {
             if (!_isEnabled) return;
             combatController.TryCastSpell();
+        }
+
+        private void HandleCastReleased()
+        {
+            if (!_isEnabled) return;
+            combatController.OnCastReleased();
         }
 
         private void HandleSwitchRing(int direction)

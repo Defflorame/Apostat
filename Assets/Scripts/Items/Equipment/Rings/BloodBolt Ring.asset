@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0208469a4ab8f5045b0dfe419930defc, type: 3}
   m_Name: BloodBolt Ring
   m_EditorClassIdentifier: Assembly-CSharp::Game.Items.RingData
-  itemId: Blood Bolt RIng
+  id: 488552605
   itemName: Blood Bolt RIng
   description: 
   weight: 0
