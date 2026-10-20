@@ -1,59 +1,41 @@
 using System;
-using System.Collections;
 using UnityEngine;
 
 namespace Game.Combat
 {
     /// <summary>
-    /// Управляет окном парирования и резолвит, была ли входящая атака
-    /// парирована вовремя. Настоящую пользу это принесёт, когда появятся
-    /// атаки врагов (Phase 8) — сейчас проверяется через TestAttacker
-    /// (см. Assets/Scripts/Debugging/TestAttacker.cs).
+    /// Хранит, открыто ли сейчас окно парирования, и резолвит входящую атаку.
+    /// Время НЕ отсчитывает — этим занимается ParryState (через Tick), поэтому
+    /// корутин здесь нет, а длительности парирования не расходятся с состоянием игрока.
     /// </summary>
     public class ParryResolver : MonoBehaviour
     {
         [SerializeField] private float parryWindowDuration = 0.3f;
         [SerializeField] private float recoveryDuration = 0.2f;
 
-        public event Action OnParryAttemptFinished;
+        public float WindowDuration => parryWindowDuration;
+        public float RecoveryDuration => recoveryDuration;
+        public bool IsWindowOpen { get; private set; }
 
         /// <summary>Входящая атака была успешно парирована (для анимации/звука/VFX).</summary>
         public event Action OnParrySucceeded;
 
-        private bool _windowOpen;
-        private Coroutine _routine;
-
-        public void BeginParryAttempt()
+        public void OpenWindow()
         {
-            if (_routine != null)
-            {
-                StopCoroutine(_routine);
-            }
-
-            _routine = StartCoroutine(RunWindow());
+            IsWindowOpen = true;
+            Debug.Log("ParryResolver: window OPEN");
         }
 
-        public void CancelParryAttempt()
+        public void CloseWindow()
         {
-            if (_routine != null)
-            {
-                StopCoroutine(_routine);
-                _routine = null;
-            }
-
-            _windowOpen = false;
+            if (IsWindowOpen) Debug.Log("ParryResolver: window CLOSED");
+            IsWindowOpen = false;
         }
 
-        /// <summary>
-        /// Вызывается DamageReceiver при входящей атаке. Возвращает true,
-        /// если атака была успешно парирована.
-        /// </summary>
+        /// <summary>Вызывается DamageReceiver при входящей атаке. true — атака парирована.</summary>
         public bool TryResolveIncomingAttack(DamagePacket packet)
         {
-            if (!_windowOpen)
-            {
-                return false;
-            }
+            if (!IsWindowOpen) return false;
 
             if (packet.AttackData == null || !packet.AttackData.canBeParried)
             {
@@ -61,18 +43,14 @@ namespace Game.Combat
                 return false;
             }
 
-            _windowOpen = false;
+            IsWindowOpen = false; // одно окно — одно парирование
             Debug.Log($"ParryResolver: SUCCESS против {packet.Source?.name}");
 
             DamageReceiver attackerReceiver = packet.Source != null
                 ? packet.Source.GetComponentInParent<DamageReceiver>()
                 : null;
 
-            if (attackerReceiver == null)
-            {
-                Debug.Log("ParryResolver: у атакующего нет DamageReceiver — стаггер не применён (это нормально, пока нет Enemy AI).");
-            }
-            else
+            if (attackerReceiver != null)
             {
                 attackerReceiver.ReceiveStagger(packet.AttackData.staggerPower);
                 attackerReceiver.ReceiveParry();
@@ -80,22 +58,6 @@ namespace Game.Combat
 
             OnParrySucceeded?.Invoke();
             return true;
-        }
-
-        private IEnumerator RunWindow()
-        {
-            _windowOpen = true;
-            Debug.Log("ParryResolver: window OPEN");
-
-            yield return new WaitForSeconds(parryWindowDuration);
-
-            _windowOpen = false;
-            Debug.Log("ParryResolver: window CLOSED");
-
-            yield return new WaitForSeconds(recoveryDuration);
-
-            _routine = null;
-            OnParryAttemptFinished?.Invoke();
         }
     }
 }

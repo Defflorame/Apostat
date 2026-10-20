@@ -1,6 +1,7 @@
 using UnityEngine;
 using Game.Player.Stats;
 using Game.Player.Equipment;
+using Game.Stats;
 
 namespace Game.Debugging
 {
@@ -24,7 +25,7 @@ namespace Game.Debugging
 
             float currentWeight = playerEquipment.GetTotalWeight();
             float weightLimit = characterStats.Stats.CarryWeightLimit;
-            float loadRatio = EncumbranceService.GetLoadRatio(currentWeight, weightLimit);
+            float loadRatio = playerEquipment.GetLoadRatio();
             float movementMultiplier = EncumbranceService.GetMovementMultiplier(loadRatio);
             float staminaCostMultiplier = EncumbranceService.GetStaminaCostMultiplier(loadRatio);
 

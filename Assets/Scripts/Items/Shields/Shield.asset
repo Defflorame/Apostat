@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 82d194ffbc8a39641883535c8821f7dd, type: 3}
   m_Name: Shield
   m_EditorClassIdentifier: Assembly-CSharp::Game.Items.ShieldData
-  itemId: Sh
+  id: -1963526561
   itemName: Sh
   description: 
   weight: 23

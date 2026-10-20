@@ -12,7 +12,7 @@ namespace Game.Combat
     {
         private Collider _collider;
         private GameObject _owner;
-        private Game.Player.Stats.CharacterStats _ownerStats;
+        private Stats.CharacterStats _ownerStats;
         private DamageReceiver _ownerReceiver;
 
         private AttackRuntime _currentAttack;
@@ -29,7 +29,7 @@ namespace Game.Combat
         public void SetOwner(GameObject owner)
         {
             _owner = owner;
-            _ownerStats = owner.GetComponentInParent<Game.Player.Stats.CharacterStats>();
+            _ownerStats = owner.GetComponentInParent<Stats.CharacterStats>();
             _ownerReceiver = owner.GetComponentInParent<DamageReceiver>();
         }
 
@@ -102,7 +102,10 @@ namespace Game.Combat
             basePhysicalDamage: _currentAttack.AttackData.damage,
             damageMultiplier: _currentAttack.DamageMultiplier,
             attackData: _currentAttack.AttackData,
-            attackerStats: _ownerStats);
+            attackerStats: _ownerStats,
+            element: _currentAttack.Element,
+            elementalDamage: _currentAttack.ElementalDamage,
+            onHitEffects: _currentAttack.OnHitEffects);
 
             DamageResolver.ResolveDamage(packet, receiver);
         }

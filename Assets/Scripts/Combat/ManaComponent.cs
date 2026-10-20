@@ -1,23 +1,42 @@
 using System;
 using UnityEngine;
+using Game.Player.Stats;
+using Game.Stats;
 
 namespace Game.Combat
 {
     /// <summary>
-    /// Мана игрока. В отличие от StaminaComponent НЕ восстанавливается
-    /// пассивно со временем: согласно п. 3.5 Пояснительной записки, ресурс
-    /// маны пополняется за счёт предметов (и, позже, точек сохранения),
-    /// а не тиком Update(). Поэтому здесь нет ни regen-логики, ни Update().
-    ///
-    /// Max задаётся извне через SetMaxMana — обычно из CharacterStats, где
-    /// объём маны зависит от характеристики Intelligence.
+    /// Мана. НЕ восстанавливается пассивно (п. 3.5 пояснительной записки):
+    /// пополняется предметами/точками сохранения через Restore.
+    /// Максимум берётся из CharacterStats (подписка на OnStatsChanged).
     /// </summary>
     public class ManaComponent : MonoBehaviour
     {
+        [Tooltip("Необязательно. Если назначено — максимум маны задаётся характеристикой Mana.")]
+        [SerializeField] private CharacterStats stats;
+
         public float CurrentMana { get; private set; }
         public float MaxMana { get; private set; }
 
         public event Action<float, float> OnManaChanged;
+
+        private void OnEnable()
+        {
+            if (stats != null) stats.OnStatsChanged += HandleStatsChanged;
+        }
+
+        private void OnDisable()
+        {
+            if (stats != null) stats.OnStatsChanged -= HandleStatsChanged;
+        }
+
+        private void Start()
+        {
+            if (stats != null && stats.Stats != null)
+            {
+                SetMaxMana(stats.Stats.MaxMana, refillToFull: true);
+            }
+        }
 
         public bool CanSpend(float amount)
         {
@@ -39,7 +58,7 @@ namespace Game.Combat
             return true;
         }
 
-        /// <summary>Пополнение маны предметом/точкой сохранения (сами эти системы появятся позже).</summary>
+        /// <summary>Пополнение маны предметом/точкой сохранения.</summary>
         public void Restore(float amount)
         {
             if (amount <= 0f) return;
@@ -48,8 +67,12 @@ namespace Game.Combat
             OnManaChanged?.Invoke(CurrentMana, MaxMana);
         }
 
-        /// <summary>Вызывается CharacterStats при (пере)расчёте характеристик.</summary>
-        public void SetMaxMana(float newMax, bool refillToFull)
+        private void HandleStatsChanged(DerivedCharacterStats derived)
+        {
+            SetMaxMana(derived.MaxMana, refillToFull: false);
+        }
+
+        private void SetMaxMana(float newMax, bool refillToFull)
         {
             MaxMana = Mathf.Max(0f, newMax);
             CurrentMana = refillToFull ? MaxMana : Mathf.Min(CurrentMana, MaxMana);

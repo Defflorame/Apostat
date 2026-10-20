@@ -4,7 +4,7 @@ using UnityEngine;
 namespace Game.Items
 {
     [CreateAssetMenu(fileName = "NewArmorData", menuName = "Game/Items/Armor Data")]
-    public class ArmorData : ItemData, IStatModifierProvider
+    public class ArmorData : ItemData, IStatModifierProvider, IResistanceProvider
     {
         public EquipmentSlot slot = EquipmentSlot.Body;
 
@@ -16,8 +16,14 @@ namespace Game.Items
 
         public IReadOnlyList<StatModifierDefinition> StatModifiers => statModifiers;
 
-        private void OnValidate()
+        [Header("Resistances")]
+        [SerializeField] private ElementResistanceDefinition[] elementResistances;
+        public IReadOnlyList<ElementResistanceDefinition> ElementResistances => elementResistances;
+
+        protected override void OnValidate()
         {
+            base.OnValidate();
+
             if (slot == EquipmentSlot.Accessory)
             {
                 Debug.LogWarning($"ArmorData '{name}': слот Accessory предназначен только для AccessoryData. Сброшено на Body.", this);

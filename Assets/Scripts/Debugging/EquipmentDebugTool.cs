@@ -1,8 +1,8 @@
 using System.Collections.Generic;
 using UnityEngine;
 using Game.Items;
-using Game.Player;
 using Game.Player.Equipment;
+using Game.Combat;
 
 namespace Game.Debugging
 {
@@ -53,7 +53,7 @@ namespace Game.Debugging
             GUILayout.Label("Инвентарь", header);
             _inventoryScroll = GUILayout.BeginScrollView(_inventoryScroll, GUILayout.Height(320));
 
-            foreach (ItemStack stack in inventory.GetAllItems())
+            foreach (ItemStack stack in new List<ItemStack>(inventory.GetAllItems()))
             {
                 DrawInventoryStackControls(stack, label, small);
             }

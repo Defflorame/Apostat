@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace Game.Player.Stats
+namespace Game.Stats
 {
     /// <summary>
     /// Описывает базовые характеристики персонажа. Health и Mana больше

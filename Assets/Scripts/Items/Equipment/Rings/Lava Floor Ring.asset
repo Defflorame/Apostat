@@ -1,0 +1,22 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0208469a4ab8f5045b0dfe419930defc, type: 3}
+  m_Name: Lava Floor Ring
+  m_EditorClassIdentifier: Assembly-CSharp::Game.Items.RingData
+  id: 307127620
+  itemName: Lava Floor Ring
+  description: 
+  weight: 0
+  maxStackSize: 1
+  statModifiers: []
+  spell: {fileID: 11400000, guid: c02c8c8cc6885ad48bd79e2c7683f5a2, type: 2}
+  ringPrefab: {fileID: 7843369213486760749, guid: a0f7ba405bb1a0f45be288a2d9918e1f, type: 3}

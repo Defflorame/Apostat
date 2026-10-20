@@ -1,9 +1,10 @@
 using UnityEngine;
+using Game.Combat;
 
 namespace Game.Items
 {
     /// <summary>
-    /// Описывает, чем оружие является. itemId/itemName/description/weight
+    /// Описывает, чем оружие является. itemName/description/weight
     /// унаследованы от ItemData — общей базы для инвентаря и экипировки
     /// (Phase 4). Не хранит runtime state.
     /// </summary>
@@ -16,6 +17,17 @@ namespace Game.Items
         public AttackData[] lightAttackFollowUps;
 
         public AttackData heavyAttack;
+
+        [Header("Elemental damage")]
+        [Tooltip("Стихия оружия. Пусто — стихийной части нет.")]
+        public ElementType element;
+        [Min(0)]
+        [Tooltip("Стихийный урон оружия — идёт ПОВЕРХ физического урона атаки. Каждая атака масштабирует его через свой elementalMultiplier.")]
+        public int elementalDamage = 0;
+
+        [Header("Status effects on hit")]
+        [Tooltip("Эффекты, которые оружие пытается наложить на цель, если по ней прошёл урон (яд на клинке и т.п.). Действуют для всех атак этого оружия.")]
+        public StatusEffectApplication[] onHitEffects;
 
         [Header("Weapon-level stats")]
         [Tooltip("Длина хитбокса атаки в метрах вдоль forward оружия.")]
@@ -34,6 +46,13 @@ namespace Game.Items
         public AnimatorOverrideController animatorOverride;
 
                 public const int MaxLightAttacks = 3;
+
+        /// <summary>Стихийный урон оружия для конкретной атаки (с её elementalMultiplier). 0 — если стихии нет.</summary>
+        public int GetElementalDamage(AttackData attack)
+        {
+            if (element == null || elementalDamage <= 0 || attack == null) return 0;
+            return Mathf.RoundToInt(elementalDamage * attack.elementalMultiplier);
+        }
 
         /// <summary>Сколько лёгких атак в серии этого оружия (0, если lightAttack не назначен).</summary>
         public int LightAttackCount
@@ -72,8 +91,10 @@ namespace Game.Items
             return lightAttack;
         }
 
-        private void OnValidate()
+        protected override void OnValidate()
         {
+            base.OnValidate();
+
             int maxFollowUps = MaxLightAttacks - 1;
             if (lightAttackFollowUps != null && lightAttackFollowUps.Length > maxFollowUps)
             {

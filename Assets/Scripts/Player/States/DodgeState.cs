@@ -1,6 +1,6 @@
 using System;
 using UnityEngine;
-using Game.Player.Equipment;
+using Game.Combat;
 
 namespace Game.Player
 {

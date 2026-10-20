@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using UnityEngine;
 using Game.Items;
 using Game.Player.Stats;
+using Game.Stats;
+using Game.Combat;
 
 namespace Game.Player.Equipment
 {
@@ -31,6 +33,8 @@ namespace Game.Player.Equipment
         public HandEquipment Hands => handEquipment;
         public IReadOnlyList<ItemInstance> EquippedRings => _equippedRings;
 
+        [SerializeField] private ElementResistanceModifiers resistanceModifiers;
+
         public ItemInstance GetEquipped(EquipmentSlot slot)
         {
             return _slots.TryGetValue(slot, out ItemInstance item) ? item : null;
@@ -44,11 +48,12 @@ namespace Game.Player.Equipment
                 return false;
             }
 
+            if (!TryTakeFromInventory(item)) return false;
             UnequipInternal(slot);
-            inventory.RemoveItem(item);
 
             _slots[slot] = item;
             EquipmentModifierService.ApplyItemModifiers(characterStats, item);
+            EquipmentModifierService.ApplyItemResistances(resistanceModifiers, item);
             OnEquipmentChanged?.Invoke();
             return true;
         }
@@ -78,9 +83,10 @@ namespace Game.Player.Equipment
                 return false;
             }
 
-            inventory.RemoveItem(item);
+            if (!TryTakeFromInventory(item)) return false;
             _equippedRings.Add(item);
             EquipmentModifierService.ApplyItemModifiers(characterStats, item);
+            EquipmentModifierService.ApplyItemResistances(resistanceModifiers, item);   // новая
             OnEquipmentChanged?.Invoke();
             return true;
         }
@@ -90,41 +96,19 @@ namespace Game.Player.Equipment
             if (item == null || !_equippedRings.Remove(item)) return false;
 
             EquipmentModifierService.RemoveItemModifiers(characterStats, item);
+            EquipmentModifierService.RemoveItemResistances(resistanceModifiers, item);  // новая
             inventory.AddItem(item);
-            OnEquipmentChanged?.Invoke();
             return true;
         }
 
         /// <summary>Экипирует оружие в MainHand. Если оружие двуручное — освобождает OffHand.</summary>
         public bool EquipMainHandWeapon(ItemInstance item)
         {
-            if (item == null || !(item.Data is WeaponData))
-            {
-                Debug.LogWarning($"PlayerEquipment: {item?.Data?.itemName} не является оружием.", this);
-                return false;
-            }
+            if (!IsItemOfType<WeaponData>(item, "оружием")) return false;
 
-            inventory.RemoveItem(item);
+            if (!TryTakeFromInventory(item)) return false;
             bool success = handEquipment.EquipMainHandWeapon(item, out ItemInstance previousMainHand, out ItemInstance displacedOffHand);
-
-            if (!success)
-            {
-                inventory.AddItem(item);
-                return false;
-            }
-
-            if (previousMainHand != null)
-            {
-                inventory.AddItem(previousMainHand);
-            }
-
-            if (displacedOffHand != null)
-            {
-                inventory.AddItem(displacedOffHand);
-            }
-
-            OnEquipmentChanged?.Invoke();
-            return true;
+            return FinishHandEquip(success, item, previousMainHand, displacedOffHand);
         }
 
         public void UnequipMainHandWeapon()
@@ -140,54 +124,20 @@ namespace Game.Player.Equipment
         /// <summary>Второе одноручное оружие в OffHand (dual-wield).</summary>
         public bool EquipOffHandWeapon(ItemInstance item)
         {
-            if (item == null || !(item.Data is WeaponData))
-            {
-                Debug.LogWarning($"PlayerEquipment: {item?.Data?.itemName} не является оружием.", this);
-                return false;
-            }
+            if (!IsItemOfType<WeaponData>(item, "оружием")) return false;
 
-            inventory.RemoveItem(item);
+            if (!TryTakeFromInventory(item)) return false;
             bool success = handEquipment.EquipOffHandWeapon(item, out ItemInstance displaced);
-
-            if (!success)
-            {
-                inventory.AddItem(item);
-                return false;
-            }
-
-            if (displaced != null)
-            {
-                inventory.AddItem(displaced);
-            }
-
-            OnEquipmentChanged?.Invoke();
-            return true;
+            return FinishHandEquip(success, item, displaced);
         }
 
         public bool EquipShield(ItemInstance item)
         {
-            if (item == null || !(item.Data is ShieldData))
-            {
-                Debug.LogWarning($"PlayerEquipment: {item?.Data?.itemName} не является щитом.", this);
-                return false;
-            }
+            if (!IsItemOfType<ShieldData>(item, "щитом")) return false;
 
-            inventory.RemoveItem(item);
+            if (!TryTakeFromInventory(item)) return false;
             bool success = handEquipment.EquipShield(item, out ItemInstance displaced);
-
-            if (!success)
-            {
-                inventory.AddItem(item);
-                return false;
-            }
-
-            if (displaced != null)
-            {
-                inventory.AddItem(displaced);
-            }
-
-            OnEquipmentChanged?.Invoke();
-            return true;
+            return FinishHandEquip(success, item, displaced);
         }
 
         /// <summary>Снимает то, что сейчас в OffHand (щит или второе оружие).</summary>
@@ -206,11 +156,21 @@ namespace Game.Player.Equipment
             return EquipmentModifierService.GetTotalWeight(_slots.Values, _equippedRings, handEquipment.MainHandItem, handEquipment.OffHandItem);
         }
 
-        /// <summary>Множитель стоимости стамины от текущей нагрузки экипировки — читает Combat (PlayerCombatController/ChargeAttackState) перед списанием стамины за действие.</summary>
-        public float GetStaminaCostMultiplier()
+        public float GetLoadRatio()
         {
-            float loadRatio = EncumbranceService.GetLoadRatio(GetTotalWeight(), characterStats.Stats.CarryWeightLimit);
-            return EncumbranceService.GetStaminaCostMultiplier(loadRatio);
+            return EncumbranceService.GetLoadRatio(GetTotalWeight(), characterStats.Stats.CarryWeightLimit);
+        }
+
+        /// <summary>
+        /// Забирает из инвентаря именно этот экземпляр. false — его там нет: экипировать
+        /// нельзя, иначе предмет появится «из воздуха» (дубликат).
+        /// </summary>
+        private bool TryTakeFromInventory(ItemInstance item)
+        {
+            if (item != null && inventory.RemoveItem(item)) return true;
+
+            Debug.LogWarning($"PlayerEquipment: {item?.Data?.itemName} нет в инвентаре — экипировать нельзя.", this);
+            return false;
         }
 
         private bool CanEquipToSlot(ItemInstance item, EquipmentSlot slot)
@@ -229,6 +189,29 @@ namespace Game.Player.Equipment
 
             return false;
         }
+        private bool IsItemOfType<T>(ItemInstance item, string typeName) where T : ItemData
+        {
+            if (item != null && item.Data is T) return true;
+
+            Debug.LogWarning($"PlayerEquipment: {item?.Data?.itemName} не является {typeName}.", this);
+            return false;
+        }
+
+        /// <summary>Общий хвост экипировки в руки: при неудаче вернуть предмет в инвентарь, иначе вернуть вытесненные.</summary>
+        private bool FinishHandEquip(bool success, ItemInstance item, ItemInstance displacedA, ItemInstance displacedB = null)
+        {
+            if (!success)
+            {
+                inventory.AddItem(item);
+                return false;
+            }
+
+            if (displacedA != null) inventory.AddItem(displacedA);
+            if (displacedB != null) inventory.AddItem(displacedB);
+
+            OnEquipmentChanged?.Invoke();
+            return true;
+        }
 
         private ItemInstance UnequipInternal(EquipmentSlot slot)
         {
@@ -238,6 +221,7 @@ namespace Game.Player.Equipment
             }
 
             EquipmentModifierService.RemoveItemModifiers(characterStats, item);
+            EquipmentModifierService.RemoveItemResistances(resistanceModifiers, item);
             _slots.Remove(slot);
             inventory.AddItem(item);
             return item;

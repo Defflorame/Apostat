@@ -101,10 +101,11 @@ namespace Game.Combat
                 return;
             }
 
-            float weaponRange = combatLoadout.CurrentWeapon != null ? combatLoadout.CurrentWeapon.range : 1f;
+            WeaponData weapon = combatLoadout.CurrentWeapon;
+            float weaponRange = weapon != null ? weapon.range : 1f;
             weaponHitbox.ApplyShape(attackData.hitboxSize, weaponRange);
 
-            _currentAttackRuntime = new AttackRuntime(attackData, Time.time, damageMultiplier);
+            _currentAttackRuntime = new AttackRuntime(attackData, weapon, Time.time, damageMultiplier);
             OnAttackStarted?.Invoke(attackData, damageMultiplier);
             _attackRoutine = StartCoroutine(RunAttackSequence(attackData));
         }

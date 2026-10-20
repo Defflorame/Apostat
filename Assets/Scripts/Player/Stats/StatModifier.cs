@@ -1,4 +1,4 @@
-namespace Game.Player.Stats
+namespace Game.Stats
 {
     /// <summary>
     /// Runtime-описание одного модификатора характеристики (например, бонус

@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ffe386116046fdf4d981f7cf0d91bef2, type: 3}
   m_Name: Accessory
   m_EditorClassIdentifier: Assembly-CSharp::Game.Items.AccessoryData
-  itemId: Acc
+  id: -2031399927
   itemName: Acc
   description: 
   weight: 4

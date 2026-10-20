@@ -1,4 +1,4 @@
-namespace Game.Player.Stats
+namespace Game.Stats
 {
     /// <summary>
     /// Способ применения StatModifier к базовому значению характеристики.

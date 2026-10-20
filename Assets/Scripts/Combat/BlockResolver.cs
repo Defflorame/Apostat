@@ -5,25 +5,32 @@ namespace Game.Combat
 {
     /// <summary>
     /// Incoming Damage + Shield Efficiency + Attacker Power + Player Modifiers
-    /// → Blocked Damage (раздел 31 документа). С Phase 4 shieldEfficiency
-    /// приходит из ShieldData экипированного щита (через CombatLoadout),
-    /// а не из фиксированного поля в инспекторе.
+    /// → Blocked Damage (раздел 31 документа). Эффективность щита берётся из
+    /// ShieldData отдельно для физического и магического урона: щит может хорошо
+    /// держать меч и плохо — заклинания (или наоборот).
     /// </summary>
     public class BlockResolver : MonoBehaviour
     {
         [Tooltip("Урон атаки, при котором эффективность щита падает до нуля (чем сильнее удар — тем хуже блокируется).")]
         [SerializeField] private float attackerPowerSoftCap = 100f;
 
-        private float _currentShieldEfficiency;
+        [Header("Stamina")]
+        [SerializeField] private StaminaComponent stamina;
+        [Tooltip("Сколько стамины стоит каждая единица урона, поглощённого щитом.")]
+        [SerializeField] private float staminaPerAbsorbedDamage = 0.5f;
+
+        private float _physicalEfficiency;
+        private float _magicEfficiency;
 
         public bool IsBlocking { get; private set; }
 
         /// <summary>shield может быть null только если блок был начат без щита — вызывающий код (PlayerCombatController) не должен этого допускать.</summary>
         public void StartBlock(ShieldData shield)
         {
-            _currentShieldEfficiency = shield != null ? shield.blockEfficiency : 0f;
+            _physicalEfficiency = shield != null ? shield.blockEfficiency : 0f;
+            _magicEfficiency = shield != null ? shield.magicBlockEfficiency : 0f;
             IsBlocking = true;
-            Debug.Log($"BlockResolver: блок начат (efficiency {_currentShieldEfficiency:F2})");
+            Debug.Log($"BlockResolver: блок начат (physical {_physicalEfficiency:F2}, magic {_magicEfficiency:F2})");
         }
 
         public void StopBlock()
@@ -32,15 +39,25 @@ namespace Game.Combat
             Debug.Log("BlockResolver: блок закончен");
         }
 
-        public int ResolveBlockedDamage(int baseDamage)
+        public int ResolveBlockedDamage(int baseDamage, DamageKind kind = DamageKind.Physical)
         {
             if (baseDamage <= 0) return 0;
 
-            float attackerPowerPenalty = Mathf.Clamp01(baseDamage / attackerPowerSoftCap) * _currentShieldEfficiency;
-            float effectiveEfficiency = Mathf.Clamp01(_currentShieldEfficiency - attackerPowerPenalty);
+            float shieldEfficiency = kind == DamageKind.Magic ? _magicEfficiency : _physicalEfficiency;
 
-            int blockedDamage = Mathf.RoundToInt(baseDamage * (1f - effectiveEfficiency));
-            return Mathf.Max(0, blockedDamage);
+            float attackerPowerPenalty = Mathf.Clamp01(baseDamage / attackerPowerSoftCap) * shieldEfficiency;
+            float effectiveEfficiency = Mathf.Clamp01(shieldEfficiency - attackerPowerPenalty);
+
+            int damageAfterBlock = Mathf.Max(0, Mathf.RoundToInt(baseDamage * (1f - effectiveEfficiency)));
+            int absorbed = baseDamage - damageAfterBlock;
+
+            if (stamina != null && !stamina.TryConsume(absorbed * staminaPerAbsorbedDamage))
+            {
+                Debug.Log("BlockResolver: не хватило stamina — гард пробит, урон проходит полностью");
+                return baseDamage;
+            }
+
+            return damageAfterBlock;
         }
     }
 }

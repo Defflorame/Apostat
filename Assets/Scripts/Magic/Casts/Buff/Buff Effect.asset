@@ -1,0 +1,15 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7269ff0c780ec5b45bd3b946a8b372f9, type: 3}
+  m_Name: Buff Effect
+  m_EditorClassIdentifier: Assembly-CSharp::Game.Magic.BuffEffectData
+  status: {fileID: 11400000, guid: df9d22e1cb6d8914e800bc7802022465, type: 2}

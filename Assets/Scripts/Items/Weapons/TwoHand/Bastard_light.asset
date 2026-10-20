@@ -15,7 +15,7 @@ MonoBehaviour:
   attackType: 0
   damage: 25
   startupDuration: 0.15
-  activeDuration: 0.5
+  activeDuration: 0.32
   recoveryDuration: 0.2
   staminaCost: 30
   canBeBlocked: 1

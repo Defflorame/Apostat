@@ -78,7 +78,7 @@ namespace Game.EditorTools
         {
             var toDelete = new List<GameObject>();
 
-            foreach (Transform t in Object.FindObjectsByType<Transform>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+            foreach (Transform t in Object.FindObjectsByType<Transform>(FindObjectsInactive.Include))
             {
                 if (t.name.StartsWith(PreviewPrefix)) toDelete.Add(t.gameObject);
             }

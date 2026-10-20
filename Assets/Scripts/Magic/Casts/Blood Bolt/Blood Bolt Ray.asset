@@ -1,0 +1,17 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ef19d7ecca633c54fa72792f65868046, type: 3}
+  m_Name: Blood Bolt Ray
+  m_EditorClassIdentifier: Assembly-CSharp::Game.Magic.HitscanEffectData
+  damage: 15
+  range: 30
+  canBeBlocked: 1

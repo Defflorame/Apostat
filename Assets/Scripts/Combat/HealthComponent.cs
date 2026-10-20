@@ -1,20 +1,24 @@
 using System;
 using UnityEngine;
+using Game.Player.Stats;
+using Game.Stats;
 
 namespace Game.Combat
 {
     /// <summary>
-    /// На первом этапе были реализованы только получение урона и смерть.
-    /// В Phase 3 добавлен SetMaxHealth: теперь источником maxHealth для
-    /// игрока является характеристика Health в CharacterStats, а не только
-    /// константа в инспекторе. Сериализованное поле осталось значением
-    /// по умолчанию — на случай объектов без CharacterStats.
+    /// Здоровье: получение урона, лечение, трата HP как ресурса, смерть.
+    /// Если назначен CharacterStats — maxHealth берётся из характеристик и
+    /// обновляется при их изменении (подписка на OnStatsChanged). Без него
+    /// (манекены, враги) используется значение из инспектора.
     /// </summary>
     public class HealthComponent : MonoBehaviour
     {
         [SerializeField] private int maxHealth = 100;
+        [Tooltip("Необязательно. Если назначено — maxHealth задаётся характеристикой Strength.")]
+        [SerializeField] private CharacterStats stats;
 
         public int CurrentHealth { get; private set; }
+        public int MaxHealth => maxHealth;
 
         public event Action<int, int> OnHealthChanged;
         public event Action<int> OnDamageTaken;
@@ -25,6 +29,25 @@ namespace Game.Combat
         private void Awake()
         {
             CurrentHealth = maxHealth;
+        }
+
+        private void OnEnable()
+        {
+            if (stats != null) stats.OnStatsChanged += HandleStatsChanged;
+        }
+
+        private void OnDisable()
+        {
+            if (stats != null) stats.OnStatsChanged -= HandleStatsChanged;
+        }
+
+        // Start, а не Awake: CharacterStats гарантированно посчитал Stats в своём Awake.
+        private void Start()
+        {
+            if (stats != null && stats.Stats != null)
+            {
+                SetMaxHealth(stats.Stats.MaxHealth, refillToFull: true);
+            }
         }
 
         public void TakeDamage(int amount)
@@ -42,6 +65,26 @@ namespace Game.Combat
             }
         }
 
+        /// <summary>
+        /// Трата HP как ресурса (заклинания за HP). Не считается уроном:
+        /// нет OnDamageTaken, и никогда не убивает (минимум 1 HP).
+        /// </summary>
+        public void SpendHealth(int amount)
+        {
+            if (_isDead || amount <= 0) return;
+
+            CurrentHealth = Mathf.Max(1, CurrentHealth - amount);
+            OnHealthChanged?.Invoke(CurrentHealth, maxHealth);
+        }
+
+        public void Heal(int amount)
+        {
+            if (_isDead || amount <= 0) return;
+
+            CurrentHealth = Mathf.Min(maxHealth, CurrentHealth + amount);
+            OnHealthChanged?.Invoke(CurrentHealth, maxHealth);
+        }
+
         public void Kill()
         {
             if (_isDead) return;
@@ -53,13 +96,12 @@ namespace Game.Combat
 
         public bool IsDead() => _isDead;
 
-        /// <summary>
-        /// Вызывается CharacterStats при (пере)расчёте характеристик.
-        /// refillToFull=true — здоровье выставляется на новый максимум
-        /// (старт игры); false — текущее здоровье лишь ограничивается новым
-        /// максимумом сверху (например, при добавлении/снятии модификатора).
-        /// </summary>
-        public void SetMaxHealth(int newMax, bool refillToFull)
+        private void HandleStatsChanged(DerivedCharacterStats derived)
+        {
+            SetMaxHealth(derived.MaxHealth, refillToFull: false);
+        }
+
+        private void SetMaxHealth(int newMax, bool refillToFull)
         {
             maxHealth = Mathf.Max(1, newMax);
             CurrentHealth = refillToFull ? maxHealth : Mathf.Min(CurrentHealth, maxHealth);

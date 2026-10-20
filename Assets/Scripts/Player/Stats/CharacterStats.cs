@@ -1,29 +1,20 @@
 using System;
 using System.Collections.Generic;
+using Game.Player.Stats;
 using UnityEngine;
-using Game.Combat;
 
-namespace Game.Player.Stats
+namespace Game.Stats
 {
     /// <summary>
-    /// Хранит базовые характеристики персонажа (BaseCharacterStats) и
-    /// активные StatModifier, пересчитывает DerivedCharacterStats и
-    /// синхронизирует Max-значения с HealthComponent/StaminaComponent/
-    /// ManaComponent. НЕ содержит боевых формул, не читает ввод и не
-    /// решает, когда персонаж должен получить урон или потратить ресурс —
-    /// это остаётся зоной ответственности Combat-систем. PhysicalDamageBonusPercent
-    /// и DefenseValue тоже не применяются здесь — CharacterStats лишь
-    /// вычисляет их и хранит в Stats, использовать их будет DamageResolver.
+    /// Хранит базовые характеристики (BaseCharacterStats) и активные StatModifier,
+    /// пересчитывает DerivedCharacterStats и сообщает об изменении событием.
+    /// Ничего не знает о Combat: HealthComponent/StaminaComponent/ManaComponent
+    /// сами подписываются на OnStatsChanged (зависимость Combat -> Stats, а не наоборот).
+    /// PhysicalDamageBonusPercent и DefenseValue читает DamageResolver.
     /// </summary>
     public class CharacterStats : MonoBehaviour
     {
         [SerializeField] private BaseCharacterStats baseStats;
-
-        [Header("Синхронизация Max-значений (необязательно)")]
-        [Tooltip("Если назначено — CharacterStats выставляет их Max/Regen при пересчёте.")]
-        [SerializeField] private HealthComponent healthComponent;
-        [SerializeField] private StaminaComponent staminaComponent;
-        [SerializeField] private ManaComponent manaComponent;
 
         public DerivedCharacterStats Stats { get; private set; }
 
@@ -34,14 +25,12 @@ namespace Game.Player.Stats
         private void Awake()
         {
             Recalculate();
-            ApplyToComponents(refillToFull: true);
         }
 
         public void AddModifier(StatModifier modifier)
         {
             _modifiers.Add(modifier);
             Recalculate();
-            ApplyToComponents(refillToFull: false);
             OnStatsChanged?.Invoke(Stats);
         }
 
@@ -52,7 +41,6 @@ namespace Game.Player.Stats
             if (removed == 0) return;
 
             Recalculate();
-            ApplyToComponents(refillToFull: false);
             OnStatsChanged?.Invoke(Stats);
         }
 
@@ -67,7 +55,9 @@ namespace Game.Player.Stats
 
             float strength = ApplyModifiers(StatType.Strength, baseStats.strength);
             int maxHealth = baseStats.baseHealth + Mathf.RoundToInt(strength * baseStats.healthPerStrengthPoint);
-            float physicalDamageBonusPercent = strength * baseStats.physicalDamageBonusPerStrengthPoint;
+            // Бонус от силы + бонус от модификаторов PhysicalDamageBonus (баффы, предметы): значения Flat = проценты.
+            float physicalDamageBonusPercent = strength * baseStats.physicalDamageBonusPerStrengthPoint
+                + ApplyModifiers(StatType.PhysicalDamageBonus, 0f);
 
             float maxStamina = ApplyModifiers(StatType.Stamina, baseStats.stamina);
             float maxMana = ApplyModifiers(StatType.Mana, baseStats.mana);
@@ -88,10 +78,9 @@ namespace Game.Player.Stats
                 defenseValue: Mathf.Max(0f, defenseValue),
                 movementSpeed: Mathf.Max(0f, speed),
                 carryWeightLimit: Mathf.Max(0f, carryWeight));
-
             Debug.Log($"CharacterStats: recalculated -> HP {Stats.MaxHealth}, Stamina {Stats.MaxStamina:F1} (regen {Stats.StaminaRegenPerSecond:F1}/s), " +
-                      $"Mana {Stats.MaxMana:F1}, PhysicalDamageBonus {Stats.PhysicalDamageBonusPercent:F1}%, MagicDamage {Stats.MagicDamage:F1}, " +
-                      $"Defense {Stats.DefenseValue:F1}, Speed {Stats.MovementSpeed:F1}, CarryWeight {Stats.CarryWeightLimit:F1}");
+      $"Mana {Stats.MaxMana:F1}, PhysicalDamageBonus {Stats.PhysicalDamageBonusPercent:F1}%, MagicDamage {Stats.MagicDamage:F1}, " +
+      $"Defense {Stats.DefenseValue:F1}, Speed {Stats.MovementSpeed:F1}, CarryWeight {Stats.CarryWeightLimit:F1}");
         }
 
         /// <summary>(base + сумма Flat) * (1 + сумма Percent / 100). Общая формула для всех характеристик.</summary>
@@ -116,14 +105,6 @@ namespace Game.Player.Stats
             }
 
             return (baseValue + flatSum) * (1f + percentSum / 100f);
-        }
-
-        private void ApplyToComponents(bool refillToFull)
-        {
-            healthComponent?.SetMaxHealth(Stats.MaxHealth, refillToFull);
-            staminaComponent?.SetMaxStamina(Stats.MaxStamina, refillToFull);
-            staminaComponent?.SetRegenPerSecond(Stats.StaminaRegenPerSecond);
-            manaComponent?.SetMaxMana(Stats.MaxMana, refillToFull);
         }
     }
 }
